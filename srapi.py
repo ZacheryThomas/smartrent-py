@@ -36,33 +36,44 @@ class SmartRent():
 
             for device in data['devices']:
                 device_id = device['id']
-                device_name = device['name']
                 device_type = device['type']
 
                 if device_type == 'thermostat':
-                    thermostat = Thermostat(email, password, device_id, device_name)
-                    attrs = self.structure_attrs(device['attributes'])
-                    thermostat.current_temp = attrs['MultiLvlSensor']['current_temp']
-                    thermostat.current_humidity = attrs['MultiLvlSensor']['current_humidity']
-
-                    thermostat.cooling_setpoint = attrs['ThermostatSetpoint']['cooling_setpoint']
-                    thermostat.heating_setpoint = attrs['ThermostatSetpoint']['heating_setpoint']
-
-                    thermostat.mode = attrs['ThermostatMode']['mode']
-                    thermostat.fan_mode = attrs['ThermostatFanMode']['fan_mode']
-
+                    thermostat = Thermostat(email, password, device_id)
                     self.device_list.append(thermostat)
 
                 if device_type == 'entry_control':
-                    doorlock = DoorLock(email, password, device_id, device_name)
-                    attrs = self.structure_attrs(device['attributes'])
-
-                    doorlock.locked = bool(attrs['DoorLock']['locked'] == 'true')
-                    doorlock.notification = attrs['Notifications']['notifications']
-
+                    doorlock = DoorLock(email, password, device_id)
                     self.device_list.append(doorlock)
         else:
             raise Exception('Devices not retrieved! Loggin probably not successful.')
+
+
+    def get_locks(self) -> List['DoorLock']:
+        return [x for x in self.device_list if isinstance(x, DoorLock)]
+
+
+    def get_thermostats(self) -> List['Thermostat']:
+        return [x for x in self.device_list if isinstance(x, Thermostat)]
+
+
+class Device():
+    def __init__(self, email:str, password:str, device_id:Union[str, int]):
+        self.device_id = int(device_id)
+        self.name = ''
+        self.notification = ''
+        self._email =  email
+        self._password = password
+
+        # update token once
+        self.update_token()
+
+        # fetch device status from SmartRent
+        self.fetch_status()
+
+        # run updater in background
+        asyncio.create_task(self.update_state())
+
 
     @staticmethod
     def structure_attrs(attrs: dict):
@@ -80,35 +91,31 @@ class SmartRent():
         return structure
 
 
-    def get_locks(self) -> List['DoorLock']:
-        return [x for x in self.device_list if isinstance(x, DoorLock)]
+    def fetch_status_helper(self, data: dict):
+        raise NotImplementedError
 
 
-    def get_thermostats(self) -> List['Thermostat']:
-        return [x for x in self.device_list if isinstance(x, Thermostat)]
+    def fetch_status(self):
+        session = requests.session()
 
+        session.post('https://control.smartrent.com/authentication/sessions', json={
+            'email': self._email,
+            'password': self._password
+        })
 
-class Device():
-    def __init__(self, email:str, password:str, device_id:str, name:str=''):
-        self.device_id = device_id
-        self.name = name
-        self.notification = ''
-        self._email =  email
-        self._password = password
+        resident_page = session.get('https://control.smartrent.com/resident')
 
-        asyncio.create_task(self.token_refresher())
+        matches = re.search(r'bundle-props="(.*)" ', resident_page.text)
+        if matches:
+            data = html.unescape(matches[1])
+            data = json.loads(data)
 
-        # update token once
-        self.update_token()
-
-        # run updater in background
-        asyncio.create_task(self.update_state())
-
-    async def token_refresher(self):
-        while True:
-            await asyncio.sleep(300)
-            print(f'updating token for {self.name}')
-            self.update_token()
+            for device in data['devices']:
+                if device['id'] == self.device_id:
+                    self.fetch_status_helper(device)
+        else:
+            print(resident_page.text)
+            raise Exception('Devices not retrieved! Loggin probably not successful.')
 
 
     def update_token(self):
@@ -164,6 +171,9 @@ class Device():
                     print('Getting new token')
                     self.update_token()
 
+                    print('Fetching current device status...')
+                    self.fetch_status()
+
                     print('Reconnecting...')
                     uri = SMARTRENT_URI.format(self.token)
 
@@ -192,8 +202,8 @@ class Device():
 
 
 class Thermostat(Device):
-    def __init__(self, email: str, password: str, device_id: str, name: str = None):
-        super().__init__(email, password, device_id, name=name)
+    def __init__(self, email: str, password: str, device_id: str):
+        super().__init__(email, password, device_id)
         self.mode = None
         self.fan_mode = None
         self.cooling_setpoint = None
@@ -224,6 +234,20 @@ class Thermostat(Device):
 
     def get_current_temp(self) -> Union[int, None]:
         return self.current_temp
+
+
+    def fetch_status_helper(self, data:dict):
+        self.name = data['name']
+
+        attrs = self.structure_attrs(data['attributes'])
+        self.current_temp = attrs['MultiLvlSensor']['current_temp']
+        self.current_humidity = attrs['MultiLvlSensor']['current_humidity']
+
+        self.cooling_setpoint = attrs['ThermostatSetpoint']['cooling_setpoint']
+        self.heating_setpoint = attrs['ThermostatSetpoint']['heating_setpoint']
+
+        self.mode = attrs['ThermostatMode']['mode']
+        self.fan_mode = attrs['ThermostatFanMode']['fan_mode']
 
 
     async def set_heating_setpoint(self, value: Union[str, int]):
@@ -302,8 +326,8 @@ class Thermostat(Device):
 
 
 class DoorLock(Device):
-    def __init__(self, email: str, password: str, device_id: str, name: str = None):
-        super().__init__(email, password, device_id, name=name)
+    def __init__(self, email: str, password: str, device_id: str):
+        super().__init__(email, password, device_id)
         self.locked = None
 
 
@@ -323,9 +347,16 @@ class DoorLock(Device):
 
 
     def get_notification(self) -> str:
-        # res = self._state.get('Notifications', {}).get('notifications', '')
-        # return res
         return self.notification
+
+
+    def fetch_status_helper(self, data:dict):
+        self.name = data['name']
+
+        attrs = self.structure_attrs(data['attributes'])
+
+        self.locked = bool(attrs['DoorLock']['locked'] == 'true')
+        self.notification = attrs['Notifications']['notifications']
 
 
     def update_parser(self, event: dict):
@@ -335,10 +366,9 @@ class DoorLock(Device):
 
         if event.get('type') == 'Notifications':
             if event.get('name') == 'notifications':
-                # self._state['Notifications']['notifications'] = resp.get('last_read_state')
                 self.notification = event.get('last_read_state')
 
 class Sensor(Device):
-    def __init__(self, email: str, password: str, device_id: str, name: str = None):
-        super().__init__(email, password, device_id, name=name)
+    def __init__(self, email: str, password: str, device_id: str):
+        super().__init__(email, password, device_id)
         "TODO"
