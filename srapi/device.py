@@ -1,6 +1,4 @@
-import re
 import json
-import html
 import asyncio
 
 from typing import Union
@@ -8,7 +6,7 @@ import logging
 
 import websockets
 import aiohttp
-from .utils import get_resident_page_text
+from .utils import async_get_token, async_get_devices_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,20 +17,23 @@ COMMAND_PAYLOAD = '["null", "null", "devices:{device_id}", "update_attributes", 
                   '"attributes": [{{"name": "{attribute_name}", "value": "{value}"}}]}}]'
 
 class Device():
-    def __init__(self, email:str, password:str, device_id:Union[str, int]):
+    def __init__(self, email:str, password:str, device_id:Union[str, int], aiohttp_session:aiohttp.ClientSession=None):
         self._device_id = int(device_id)
         self._name: str = ''
         self._notification: str = ''
         self._token: str = None
         self._email =  email
         self._password = password
-        self._session = aiohttp.ClientSession()
+        self._session = aiohttp_session if aiohttp_session else aiohttp.ClientSession()
         self._update_callback_func = None
 
         self._updater_task = None
 
+    def __del__(self):
+        asyncio.create_task(self._session.close())
+
     @staticmethod
-    def structure_attrs(attrs: list):
+    def _structure_attrs(attrs: list):
         '''
         Converts device json object to hirearchical list of attributes
 
@@ -52,73 +53,50 @@ class Device():
         return structure
 
 
-    def fetch_state_helper(self, data: dict):
+    def _fetch_state_helper(self, data: dict):
         '''
-        Called by ``fetch_state``
+        Called by ``_async_fetch_state``
 
         Converts event dict to device param info
         '''
         raise NotImplementedError
 
 
-    async def fetch_state(self):
+    async def _async_fetch_state(self):
         '''
         Fetches device information from SmartRent `/resident` page
 
-        Calls ``fetch_state_helper`` so device can parse out info and update its state.
+        Calls ``_fetch_state_helper`` so device can parse out info and update its state.
 
         Calls function passed into ``set_update_callback`` if it exists.
         '''
         _LOGGER.info(f'{self._name}: Fetching Status res page call...')
-        resident_page_text = await get_resident_page_text(
-            self._email,
-            self._password,
-            self._session
-        )
+        data = await async_get_devices_data(self._email, self._password, self._session)
         _LOGGER.info(f'{self._name}: Done Fetching Status')
 
-        # Device states stored in json object called `bundle-props`
-        matches = re.search(r'bundle-props="(.*)" ', resident_page_text)
-        if matches:
-            data = html.unescape(matches[1])
-            data = json.loads(data)
-
-            # Find device id that belongs to me then call fetch_state_helper
-            for device in data['devices']:
-                if device['id'] == self._device_id:
-                    self.fetch_state_helper(device)
-                    if self._update_callback_func:
-                        self._update_callback_func()
-        else:
-            _LOGGER.error(resident_page_text)
-            raise Exception('Devices not retrieved! Loggin probably not successful.')
+        # Find device id that belongs to me then call _fetch_state_helper
+        for device in data['devices']:
+            if device['id'] == self._device_id:
+                self._fetch_state_helper(device)
+                if self._update_callback_func:
+                    self._update_callback_func()
 
 
-    async def update_token(self):
+    async def _async_update_token(self):
         '''
         Updates the internal websocket token for the device
         '''
         _LOGGER.info(f'{self._name}: Update Token res page call...')
-        resident_page_text = await get_resident_page_text(
-            self._email,
-            self._password,
-            self._session
-        )
+        self._token = await async_get_token(self._email, self._password, self._session)
         _LOGGER.info(f'{self._name}: Done Updating Token')
-        matches = re.search(r'websocketAccessToken = "(.*)"', resident_page_text)
-        if matches:
-            self._token = matches[1]
-        else:
-            _LOGGER.error(resident_page_text)
-            raise Exception('Token not retrieved! Loggin probably not successful.')
 
 
     def start_updater(self):
         '''
         Starts running ``update_state`` in the background
         '''
-        _LOGGER.info('Starting updater task')
-        self._updater_task = asyncio.create_task(self.update_state())
+        _LOGGER.info(f'{self._name}: Starting updater task')
+        self._updater_task = asyncio.create_task(self._async_update_state())
 
 
     def stop_updater(self):
@@ -126,35 +104,35 @@ class Device():
         Stops running ``update_state`` in the background
         '''
         if self._updater_task:
-            _LOGGER.info('Stopping updater task')
+            _LOGGER.info(f'{self._name}: Stopping updater task')
             self._updater_task.cancel()
 
 
     def set_update_callback(self, func) -> None:
         '''
-        Allows callback to be fired when ``update_state`` or ``fetch_state`` gets new information
+        Allows callback to be fired when ``_async_update_state`` or ``_async_fetch_state`` gets new information
         '''
         self._update_callback_func = func
 
 
-    def update_parser(self, event: dict) -> None:
+    def _update_parser(self, event: dict) -> None:
         '''
-        Called by ``update_state``
+        Called by ``_async_update_state``
 
         Converts event dict to device param info
         '''
         raise NotImplementedError
 
 
-    async def update_state(self):
+    async def _async_update_state(self):
         '''
         Connects to SmartRent websocket and listens for updates.
         To be ran in the background. You can call ``start_updater`` and ``stop_updater``
-        to turn ``update_state`` on or off.
+        to turn ``_async_update_state`` on or off.
 
-        Calls ``update_parser`` method for device when event is found
+        Calls ``_update_parser`` method for device when event is found
         '''
-        await self.update_token()
+        await self._async_update_token()
 
         uri = SMARTRENT_URI.format(self._token)
 
@@ -174,11 +152,11 @@ class Device():
                             f'{formatted_resp.get("name", ""):<15}: '
                             f'{formatted_resp.get("last_read_state", ""):<20}'
                         )
-                        _LOGGER.info(event)
+                        _LOGGER.info(f'{self._name} {event}')
                     else:
-                        _LOGGER.info(resp)
+                        _LOGGER.info(f'{self._name} {resp}')
 
-                    self.update_parser(formatted_resp)
+                    self._update_parser(formatted_resp)
                     if self._update_callback_func:
                         self._update_callback_func()
 
@@ -189,10 +167,11 @@ class Device():
                     _LOGGER.warn(f'{self._name}: Got excpetion: {exc}')
 
                     _LOGGER.info(f'{self._name}: Getting new token')
-                    await self.update_token()
+                    await self._async_update_token()
 
+                    # Lets fetch device state just to make sure we didn't miss anything wile the socket was down
                     _LOGGER.info(f'{self._name}: Fetching current device status...')
-                    await self.fetch_state()
+                    await self._async_fetch_state()
 
                     _LOGGER.info(f'{self._name}: Reconnecting to Websocket...')
                     uri = SMARTRENT_URI.format(self._token)
@@ -205,7 +184,7 @@ class Device():
                     await websocket.send(joiner)
 
 
-    async def send_command(self, attribute_name:str, value:str):
+    async def _async_send_command(self, attribute_name:str, value:str):
         '''
         Sends command to SmartRent websocket
 
@@ -218,24 +197,26 @@ class Device():
             device_id=self._device_id
         )
 
-        await self.send_payload(payload)
+        await self._async_send_payload(payload)
 
 
-    async def send_payload(self, payload:str):
+    async def _async_send_payload(self, payload:str):
         '''
         Sends payload to SmartRent websocket
 
         ``payload`` string of device attributes
         '''
+        _LOGGER.info(f'sending payload {payload}')
 
+        uri = SMARTRENT_URI.format(self._token)
+
+        joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
         try:
             uri = SMARTRENT_URI.format(self._token)
 
             async with websockets.connect(uri) as websocket:
-                joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
                 # Join topic given device id
                 await websocket.send(joiner)
-
                 # Send payload
                 await websocket.send(payload)
 
@@ -243,14 +224,12 @@ class Device():
             _LOGGER.warn(f'Issue during send_payload: {e}')
 
             # update token once
-            await self.update_token()
+            await self._async_update_token()
 
             uri = SMARTRENT_URI.format(self._token)
 
             async with websockets.connect(uri) as websocket:
-                joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
                 # Join topic given device id
                 await websocket.send(joiner)
-
                 # Send payload
                 await websocket.send(payload)
