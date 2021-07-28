@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 import logging
 
 import aiohttp
@@ -7,7 +7,16 @@ from .device import Device
 _LOGGER = logging.getLogger(__name__)
 
 class Thermostat(Device):
-    def __init__(self, email: str, password: str, device_id: str, aiohttp_session:aiohttp.ClientSession=None):
+    '''
+    Represents Thermostat SmartRent device
+    '''
+    def __init__(
+        self,
+        email: str,
+        password: str,
+        device_id: str,
+        aiohttp_session:aiohttp.ClientSession=None
+    ):
         super().__init__(email, password, device_id, aiohttp_session)
         self._mode = None
         self._fan_mode = None
@@ -17,42 +26,42 @@ class Thermostat(Device):
         self._current_temp = None
 
 
-    def get_mode(self) -> Union[str, None]:
+    def get_mode(self) -> Optional[str]:
         '''
         Gets mode from thermostat
         '''
         return self._mode
 
 
-    def get_fan_mode(self) -> Union[str, None]:
+    def get_fan_mode(self) -> Optional[str]:
         '''
         Gets fan mode from thermostat
         '''
         return self._fan_mode
 
 
-    def get_cooling_setpoint(self) -> Union[int, None]:
+    def get_cooling_setpoint(self) -> Optional[int]:
         '''
         Gets cooling setpoint from thermostat
         '''
         return self._cooling_setpoint
 
 
-    def get_heating_setpoint(self) -> Union[int, None]:
+    def get_heating_setpoint(self) -> Optional[int]:
         '''
         Gets heating setpoint from thermostat
         '''
         return self._heating_setpoint
 
 
-    def get_current_humidity(self) -> Union[int, None]:
+    def get_current_humidity(self) -> Optional[int]:
         '''
         Gets current humidity from thermostat
         '''
         return self._current_humidity
 
 
-    def get_current_temp(self) -> Union[int, None]:
+    def get_current_temp(self) -> Optional[int]:
         '''
         Gets current temperature from thermostat
         '''

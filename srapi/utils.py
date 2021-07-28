@@ -9,6 +9,9 @@ _LOGGER = logging.getLogger(__name__)
 
 from .errors import InvalidAuthError
 
+SMARTRENT_AUTHENTICATION_URI = 'https://control.smartrent.com/authentication/sessions'
+SMARTRENT_RESIDENT_PAGE_URI = 'https://control.smartrent.com/resident'
+
 async def async_login_to_api(email:str, password:str, aiohttp_session:aiohttp.ClientSession) -> str:
     '''Logs into SmartRents api with the provided session
 
@@ -16,12 +19,10 @@ async def async_login_to_api(email:str, password:str, aiohttp_session:aiohttp.Cl
 
     ``password`` you know what it is
 
-    ``aiohttp_session`` uses the aiohttp_session that is passed in.
-    This helps to avoid having to authenticate as often. Otherwise calling this method
-    without a session ensures you will call the `/authentication/sessions` endpoint
+    ``aiohttp_session`` uses the aiohttp_session that is passed in
     '''
     _LOGGER.info(f'Attempting login')
-    resp = await aiohttp_session.post('https://control.smartrent.com/authentication/sessions', json={
+    resp = await aiohttp_session.post(SMARTRENT_AUTHENTICATION_URI, json={
         'email': email,
         'password': password
     })
@@ -39,20 +40,18 @@ async def async_get_resident_page_text(email:str, password:str, aiohttp_session:
 
     ``password`` you know what it is
 
-    ``aiohttp_session`` uses the aiohttp_session that is passed in.
-    This helps to avoid having to authenticate as often. Otherwise calling this method
-    without a session ensures you will call the `/authentication/sessions` endpoint
+    ``aiohttp_session`` uses the aiohttp_session that is passed in
     '''
 
     _LOGGER.info('Calling resident page')
-    response = await aiohttp_session.get('https://control.smartrent.com/resident')
+    response = await aiohttp_session.get(SMARTRENT_RESIDENT_PAGE_URI)
     response_text = await response.text()
 
     if 'You must login to access this page' in response_text:
         _LOGGER.warn(f'Session no longer logged in. Attempting login')
         await async_login_to_api(email, password, aiohttp_session)
 
-        response = await aiohttp_session.get('https://control.smartrent.com/resident')
+        response = await aiohttp_session.get(SMARTRENT_RESIDENT_PAGE_URI)
         response_text = await response.text()
 
         if 'You must login to access this page' in response_text:
@@ -68,9 +67,7 @@ async def async_get_devices_data(email:str, password:str, aiohttp_session:aiohtt
 
     ``password`` you know what it is
 
-    ``aiohttp_session`` uses the aiohttp_session that is passed in.
-    This helps to avoid having to authenticate as often. Otherwise calling this method
-    without a session ensures you will call the `/authentication/sessions` endpoint
+    ``aiohttp_session`` uses the aiohttp_session that is passed in
     '''
     resident_page_text = await async_get_resident_page_text(email, password, aiohttp_session)
 
@@ -91,9 +88,7 @@ async def async_get_token(email:str, password:str, aiohttp_session:aiohttp.Clien
 
     ``password`` you know what it is
 
-    ``aiohttp_session`` uses the aiohttp_session that is passed in.
-    This helps to avoid having to authenticate as often. Otherwise calling this method
-    without a session ensures you will call the `/authentication/sessions` endpoint
+    ``aiohttp_session`` uses the aiohttp_session that is passed in
     '''
     resident_page_text = await async_get_resident_page_text(email, password, aiohttp_session)
 

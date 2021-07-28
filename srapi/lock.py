@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional
 import logging
 
 import aiohttp
@@ -7,20 +7,29 @@ from .device import Device
 _LOGGER = logging.getLogger(__name__)
 
 class DoorLock(Device):
-    def __init__(self, email: str, password: str, device_id: str, aiohttp_session:aiohttp.ClientSession=None):
+    '''
+    Represents Lock SmartRent device
+    '''
+    def __init__(
+        self,
+        email: str,
+        password: str,
+        device_id: str,
+        aiohttp_session:aiohttp.ClientSession=None
+    ):
         super().__init__(email, password, device_id, aiohttp_session)
         self._locked = None
         self._notification = None
 
 
-    def get_notification(self) -> str:
+    def get_notification(self) -> Optional[str]:
         '''
         Notification message for lock
         '''
         return self._notification
 
 
-    def get_locked(self) -> bool:
+    def get_locked(self) -> Optional[bool]:
         '''
         Gets state from lock
         '''
