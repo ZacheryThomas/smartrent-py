@@ -12,6 +12,23 @@ from .errors import InvalidAuthError
 SMARTRENT_AUTHENTICATION_URI = 'https://control.smartrent.com/authentication/sessions'
 SMARTRENT_RESIDENT_PAGE_URI = 'https://control.smartrent.com/resident'
 
+
+class SmartRentError(Exception):
+    '''
+    Base error for SmartRent
+    '''
+
+    pass
+
+
+class InvalidAuthError(SmartRentError):
+    '''
+    Error related to invalid auth
+    '''
+
+    pass
+
+
 async def async_login_to_api(email:str, password:str, aiohttp_session:aiohttp.ClientSession) -> str:
     '''Logs into SmartRents api with the provided session
 

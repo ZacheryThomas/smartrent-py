@@ -14,7 +14,7 @@ class Thermostat(Device):
         self,
         email: str,
         password: str,
-        device_id: str,
+        device_id: int,
         aiohttp_session:aiohttp.ClientSession=None
     ):
         super().__init__(email, password, device_id, aiohttp_session)
