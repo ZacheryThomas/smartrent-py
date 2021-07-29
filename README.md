@@ -1,5 +1,4 @@
 # SmartRent API
-
 Unnoficial api for SmartRent devices
 
 ## Known Devices supported
@@ -21,7 +20,7 @@ import asyncio
 from srapi import srapi
 
 async def main():
-    api = await srapi.async_login(<EMAIL>, <PASSWORD>)
+    api = await srapi.async_login('<EMAIL>', '<PASSWORD>')
 
 asyncio.run(main())
 ```
@@ -35,7 +34,7 @@ import asyncio
 from srapi import srapi
 
 async def main():
-    api = await srapi.async_login(<EMAIL>, <PASSWORD>)
+    api = await srapi.async_login('<EMAIL>', '<PASSWORD>')
 
     lock = api.get_locks()[0]
     locked = lock.get_locked()
@@ -51,14 +50,14 @@ If you need to get live updates to your device object from SmartRent, you can do
 
 You can also set a callback function via `set_update_callback` that will be called when an update is triggered.
 
-For example, if you want to set your thermostat to `Dad mode` you can trigger an event every time the `cooling_setpoint` is changed and just change it back to your own desired value.
+For example, if you want to set your thermostat to `Dad Mode` you can trigger an event every time the `cooling_setpoint` is changed and just change it back to your own desired value.
 ```python
 import asyncio
 
 from srapi import srapi
 
 async def main():
-    api = await srapi.async_login(<EMAIL>, <PASSWORD>)
+    api = await srapi.async_login('<EMAIL>', '<PASSWORD>')
 
     thermo = api.get_thermostats()[0]
     thermo.start_updater()
