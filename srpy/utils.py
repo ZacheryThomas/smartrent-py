@@ -7,8 +7,6 @@ import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
-from .errors import InvalidAuthError
-
 SMARTRENT_AUTHENTICATION_URI = 'https://control.smartrent.com/authentication/sessions'
 SMARTRENT_RESIDENT_PAGE_URI = 'https://control.smartrent.com/resident'
 
@@ -65,7 +63,7 @@ async def async_get_resident_page_text(email:str, password:str, aiohttp_session:
     response_text = await response.text()
 
     if 'You must login to access this page' in response_text:
-        _LOGGER.warn(f'Session no longer logged in. Attempting login')
+        _LOGGER.warning(f'Session no longer logged in. Attempting login')
         await async_login_to_api(email, password, aiohttp_session)
 
         response = await aiohttp_session.get(SMARTRENT_RESIDENT_PAGE_URI)
