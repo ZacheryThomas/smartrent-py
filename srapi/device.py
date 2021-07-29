@@ -208,7 +208,7 @@ class Device():
         '''
         payload = COMMAND_PAYLOAD.format(
             attribute_name=attribute_name,
-            value=int(value),
+            value=value,
             device_id=self._device_id
         )
 

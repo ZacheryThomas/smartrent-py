@@ -40,6 +40,10 @@ class DoorLock(Device):
         '''
         Sets state for lock
         '''
+
+        # Convert to lowercase just like SmartRent website does
+        value = 'true' if value else 'false'
+
         await self._async_send_command(
             attribute_name='locked',
             value=value
