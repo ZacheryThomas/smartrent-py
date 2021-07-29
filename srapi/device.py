@@ -32,13 +32,17 @@ class Device():
         self._token: str = None
         self._email =  email
         self._password = password
-        self._session = aiohttp_session if aiohttp_session else aiohttp.ClientSession()
         self._update_callback_func = None
-
         self._updater_task = None
 
+        self._im_managing_session = not bool(aiohttp_session)
+        self._session = aiohttp.ClientSession() if not aiohttp_session else aiohttp_session
+
+
     def __del__(self):
-        asyncio.create_task(self._session.close())
+        if not self._session.closed and self._im_managing_session:
+            _LOGGER.info('%s: closing session %s', self._name, self._session)
+            asyncio.create_task(self._session.close())
 
     @staticmethod
     def _structure_attrs(attrs: list):

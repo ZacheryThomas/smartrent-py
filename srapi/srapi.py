@@ -1,9 +1,7 @@
 import asyncio
-import re
-import json
-import html
 import logging
 from typing import List, Union
+
 import aiohttp
 
 from .lock import DoorLock
@@ -14,15 +12,19 @@ from .utils import async_get_devices_data, async_login_to_api
 _LOGGER = logging.getLogger(__name__)
 
 class API():
-    def __init__(self, email: str, password: str, session: aiohttp.ClientSession = None):
+    def __init__(self, email: str, password: str, aiohttp_session: aiohttp.ClientSession = None):
         self._device_list = []
         self._email = email
         self._password = password
-        self._session = aiohttp.ClientSession() if not session else session
+
+        self._im_managing_session = not bool(aiohttp_session)
+        self._session = aiohttp.ClientSession() if not aiohttp_session else aiohttp_session
 
 
     def __del__(self):
-        asyncio.create_task(self._session.close())
+        if not self._session.closed and self._im_managing_session:
+            _LOGGER.info('API closing session %s', self._session)
+            asyncio.create_task(self._session.close())
 
 
     async def async_fetch_devices(self):
@@ -68,11 +70,29 @@ class API():
         return [x for x in self._device_list if isinstance(x, Thermostat)]
 
 
-async def async_login(email: str, password: str, aiohttp_session: aiohttp.ClientSession=None):
-    session = aiohttp.ClientSession() if not aiohttp_session else aiohttp_session
+async def async_login(
+    email: str,
+    password: str,
+    aiohttp_session: aiohttp.ClientSession = None
+) -> API:
+    '''
+    Logs into SmartRent and retruns an `API` object
 
-    sr = API(email, password)
+    ``email`` is the email address for your SmartRent account
+
+    ``password`` you know what it is
+
+    ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
+    '''
+
+    session = aiohttp_session if aiohttp_session else aiohttp.ClientSession()
+
+    smart_rent_api = API(email, password, session)
+
+    # if this function makes a session, let API object handle session cleanup
+    smart_rent_api._im_managing_session = not bool(aiohttp_session)
+
     await async_login_to_api(email, password, session)
-    await sr.async_fetch_devices()
+    await smart_rent_api.async_fetch_devices()
 
-    return sr
+    return smart_rent_api
