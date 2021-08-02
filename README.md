@@ -17,10 +17,10 @@ In order to get an api object to interact with, you must login with the `async_l
 ```python
 import asyncio
 
-from srapi import srapi
+from srpy import async_login
 
 async def main():
-    api = await srapi.async_login('<EMAIL>', '<PASSWORD>')
+    api = await async_login('<EMAIL>', '<PASSWORD>')
 
 asyncio.run(main())
 ```
@@ -31,10 +31,10 @@ You can get lists of your devices from the api with the `get_locks` and `get_the
 ```python
 import asyncio
 
-from srapi import srapi
+from srpy import async_login
 
 async def main():
-    api = await srapi.async_login('<EMAIL>', '<PASSWORD>')
+    api = await async_login('<EMAIL>', '<PASSWORD>')
 
     lock = api.get_locks()[0]
     locked = lock.get_locked()
@@ -54,19 +54,19 @@ For example, if you want to set your thermostat to `Dad Mode` you can trigger an
 ```python
 import asyncio
 
-from srapi import srapi
+from srpy import async_login
 
 async def main():
-    api = await srapi.async_login('<EMAIL>', '<PASSWORD>')
+    api = await async_login('<EMAIL>', '<PASSWORD>')
 
     thermo = api.get_thermostats()[0]
     thermo.start_updater()
 
     CONSTANT_COOL = 80
 
-    def on_evt():
+    async def on_evt():
         if CONSTANT_COOL != thermo.get_cooling_setpoint():
-            asyncio.create_task(thermo.async_set_cooling_setpoint(CONSTANT_COOL))
+            await thermo.async_set_cooling_setpoint(CONSTANT_COOL)
 
     thermo.set_update_callback(on_evt)
 
