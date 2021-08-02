@@ -1,5 +1,6 @@
 import json
 import asyncio
+import inspect
 
 from typing import Union
 import logging
@@ -90,8 +91,12 @@ class Device():
         for device in data['devices']:
             if device['id'] == self._device_id:
                 self._fetch_state_helper(device)
+
                 if self._update_callback_func:
-                    self._update_callback_func()
+                    if inspect.iscoroutinefunction(self._update_callback_func):
+                        await self._update_callback_func()
+                    else:
+                        self._update_callback_func()
 
 
     async def _async_update_token(self):
@@ -170,8 +175,12 @@ class Device():
                         _LOGGER.info('%s %s',self._name, resp)
 
                     self._update_parser(formatted_resp)
+
                     if self._update_callback_func:
-                        self._update_callback_func()
+                        if inspect.iscoroutinefunction(self._update_callback_func):
+                            await self._update_callback_func()
+                        else:
+                            self._update_callback_func()
 
                 except (
                     websockets.exceptions.ConnectionClosedError,
