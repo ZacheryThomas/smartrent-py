@@ -1,6 +1,8 @@
 # SmartRent API
 Unnoficial api for SmartRent devices
 
+Uses websockets for communication and supports async functions
+
 ## Known Devices supported
 ### Locks
 * Yale YRD256
@@ -17,7 +19,7 @@ In order to get an api object to interact with, you must login with the `async_l
 ```python
 import asyncio
 
-from srpy import async_login
+from smartrent import async_login
 
 async def main():
     api = await async_login('<EMAIL>', '<PASSWORD>')
@@ -31,7 +33,7 @@ You can get lists of your devices from the api with the `get_locks` and `get_the
 ```python
 import asyncio
 
-from srpy import async_login
+from smartrent import async_login
 
 async def main():
     api = await async_login('<EMAIL>', '<PASSWORD>')
@@ -54,7 +56,7 @@ For example, if you want to set your thermostat to `Dad Mode` you can trigger an
 ```python
 import asyncio
 
-from srpy import async_login
+from smartrent import async_login
 
 async def main():
     api = await async_login('<EMAIL>', '<PASSWORD>')

@@ -4,7 +4,7 @@ from .device import Device
 
 class Sensor(Device):
     '''
-    Represents Lock SmartRent device
+    Represents Sensor SmartRent device
     '''
     def __init__(
         self,

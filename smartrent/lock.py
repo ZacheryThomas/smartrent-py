@@ -41,6 +41,8 @@ class DoorLock(Device):
         Sets state for lock
         '''
 
+        self._locked = value
+
         # Convert to lowercase just like SmartRent website does
         value = 'true' if value else 'false'
 
@@ -48,8 +50,6 @@ class DoorLock(Device):
             attribute_name='locked',
             value=value
         )
-
-        self._locked = value
 
 
     def _fetch_state_helper(self, data:dict):
@@ -62,8 +62,8 @@ class DoorLock(Device):
 
         attrs = self._structure_attrs(data['attributes'])
 
-        self._locked = bool(attrs['DoorLock']['locked'] == 'true')
-        self._notification = attrs['Notifications']['notifications']
+        self._locked = bool(attrs['locked'] == 'true')
+        self._notification = attrs['notifications']
 
 
     def _update_parser(self, event: dict):
@@ -73,9 +73,8 @@ class DoorLock(Device):
         ``event`` dict passed in from ``_async_update_state``
         '''
         _LOGGER.info('Updating DoorLock')
-        if event.get('type') == 'DoorLock':
+        if event.get('name') == 'locked':
             self._locked = bool(event['last_read_state'] == 'true')
 
-        if event.get('type') == 'Notifications':
-            if event.get('name') == 'notifications':
-                self._notification = event.get('last_read_state')
+        if event.get('name') == 'notifications':
+            self._notification = event.get('last_read_state')

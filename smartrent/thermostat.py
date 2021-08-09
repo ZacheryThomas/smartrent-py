@@ -139,14 +139,14 @@ class Thermostat(Device):
         self._name = data['name']
 
         attrs = self._structure_attrs(data['attributes'])
-        self._current_temp = int(attrs['MultiLvlSensor']['current_temp'])
-        self._current_humidity = int(attrs['MultiLvlSensor']['current_humidity'])
+        self._current_temp = int(attrs['current_temp'])
+        self._current_humidity = int(attrs['current_humidity'])
 
-        self._cooling_setpoint = int(attrs['ThermostatSetpoint']['cooling_setpoint'])
-        self._heating_setpoint = int(attrs['ThermostatSetpoint']['heating_setpoint'])
+        self._cooling_setpoint = int(attrs['cooling_setpoint'])
+        self._heating_setpoint = int(attrs['heating_setpoint'])
 
-        self._mode = attrs['ThermostatMode']['mode']
-        self._fan_mode = attrs['ThermostatFanMode']['fan_mode']
+        self._mode = attrs['mode']
+        self._fan_mode = attrs['fan_mode']
 
 
     def _update_parser(self, event: dict) -> None:
@@ -156,24 +156,20 @@ class Thermostat(Device):
         ``event`` dict passed in from ``_async_update_state``
         '''
         _LOGGER.info('Updating Thermostat')
-        if event.get('type') == 'MultiLvlSensor':
-            if event.get('name') == 'current_humidity':
-                self._current_humidity = int(event.get('last_read_state'))
+        if event.get('name') == 'current_humidity':
+            self._current_humidity = int(event.get('last_read_state'))
 
-            if event.get('name') == 'current_temp':
-                self._current_temp = int(event.get('last_read_state'))
+        if event.get('name') == 'current_temp':
+            self._current_temp = int(event.get('last_read_state'))
 
-        if event.get('type') == 'ThermostatMode':
-            if event.get('name') == 'mode':
-                self._mode = event.get('last_read_state')
+        if event.get('name') == 'heating_setpoint':
+            self._heating_setpoint = int(event.get('last_read_state'))
 
-        if event.get('type') == 'ThermostatFanMode':
-            if event.get('name') == 'fan_mode':
-                self._fan_mode = event.get('last_read_state')
+        if event.get('name') == 'cooling_setpoint':
+            self._cooling_setpoint = int(event.get('last_read_state'))
 
-        if event.get('type') == 'ThermostatSetpoint':
-            if event.get('name') == 'heating_setpoint':
-                self._heating_setpoint = int(event.get('last_read_state'))
+        if event.get('name') == 'mode':
+            self._mode = event.get('last_read_state')
 
-            if event.get('name') == 'cooling_setpoint':
-                self._cooling_setpoint = int(event.get('last_read_state'))
+        if event.get('name') == 'fan_mode':
+            self._fan_mode = event.get('last_read_state')

@@ -1,10 +1,13 @@
 [tool.poetry]
-name = "srpy"
-version = "0.1.0"
+name = "smartrent.py"
+version = "0.0.1"
 description = "Unofficial Python API for SmartRent devices"
 readme = "README.md"
 license = "LICENSE.md"
 authors = ["Your Name <you@example.com>"]
+packages = [
+  { include = "smartrent" }
+]
 
 [tool.poetry.dependencies]
 aiohttp = "^3.7.4"

@@ -36,7 +36,7 @@ async def async_login_to_api(email:str, password:str, aiohttp_session:aiohttp.Cl
 
     ``aiohttp_session`` uses the aiohttp_session that is passed in
     '''
-    _LOGGER.info(f'Attempting login')
+    _LOGGER.debug(f'Attempting login')
     resp = await aiohttp_session.post(SMARTRENT_AUTHENTICATION_URI, json={
         'email': email,
         'password': password
@@ -58,7 +58,7 @@ async def async_get_resident_page_text(email:str, password:str, aiohttp_session:
     ``aiohttp_session`` uses the aiohttp_session that is passed in
     '''
 
-    _LOGGER.info('Calling resident page')
+    _LOGGER.debug('Calling resident page')
     response = await aiohttp_session.get(SMARTRENT_RESIDENT_PAGE_URI)
     response_text = await response.text()
 

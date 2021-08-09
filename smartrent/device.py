@@ -55,14 +55,10 @@ class Device():
         structure = {}
 
         for attr in attrs:
-            type_val = attr.get('type')
             name = attr.get('name')
             last_read_state = attr.get('last_read_state')
 
-            if type_val not in structure:
-                structure[type_val] = {}
-
-            structure[type_val][name] = last_read_state
+            structure[name] = last_read_state
         return structure
 
 
@@ -85,7 +81,6 @@ class Device():
         '''
         _LOGGER.info('%s: Fetching Status res page call...', self._name)
         data = await async_get_devices_data(self._email, self._password, self._session)
-        _LOGGER.info('%s: Done Fetching Status', self._name)
 
         # Find device id that belongs to me then call _fetch_state_helper
         for device in data['devices']:
@@ -105,8 +100,6 @@ class Device():
         '''
         _LOGGER.info('%s: Update Token res page call...', self._name)
         self._token = await async_get_token(self._email, self._password, self._session)
-        _LOGGER.info('%s: Done Updating Token', self._name)
-
 
     def start_updater(self):
         '''
@@ -236,17 +229,20 @@ class Device():
         '''
         _LOGGER.info('sending payload %s', payload)
 
+        joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
         uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
 
-        joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
-        try:
-            uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
-
+        async def sender(uri: str, payload: str):
             async with websockets.connect(uri) as websocket:
                 # Join topic given device id
                 await websocket.send(joiner)
                 # Send payload
                 await websocket.send(payload)
+
+        try:
+            uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
+
+            await sender(uri, payload)
 
         except websockets.exceptions.InvalidStatusCode as exc:
             _LOGGER.warning('Issue during send_payload: %s', exc)
@@ -256,8 +252,4 @@ class Device():
 
             uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
 
-            async with websockets.connect(uri) as websocket:
-                # Join topic given device id
-                await websocket.send(joiner)
-                # Send payload
-                await websocket.send(payload)
+            await sender(uri, payload)
