@@ -13,6 +13,12 @@ Uses websockets for communication and supports async functions
 
 # Usage
 
+## Installing
+
+```bash
+pip install smartrent.py
+```
+
 ## Getting an API Object
 In order to get an api object to interact with, you must login with the `async_login` function. This starts and handles a web session with SmartRent's webserver.
 
