@@ -1,5 +1,5 @@
 # SmartRent API
-Unnoficial api for SmartRent devices
+Unofficial api for SmartRent devices
 
 Uses websockets for communication and supports async functions
 
