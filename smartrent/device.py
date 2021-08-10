@@ -101,6 +101,7 @@ class Device():
         _LOGGER.info('%s: Update Token res page call...', self._name)
         self._token = await async_get_token(self._email, self._password, self._session)
 
+
     def start_updater(self):
         '''
         Starts running ``update_state`` in the background
@@ -245,7 +246,7 @@ class Device():
             await sender(uri, payload)
 
         except websockets.exceptions.InvalidStatusCode as exc:
-            _LOGGER.warning('Issue during send_payload: %s', exc)
+            _LOGGER.debug('Possible issue during send_payload: %s', exc)
 
             # update token once
             await self._async_update_token()
