@@ -1,4 +1,10 @@
 # SmartRent API
+
+[![PyPI version](https://img.shields.io/pypi/v/smartrent-py.svg?logo=pypi&logoColor=FFE873)](https://pypi.org/project/smartrent-py/)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/smartrent-py.svg?logo=python&logoColor=FFE873)](https://pypi.org/project/smartrent-py/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/smartrent-py.svg)](https://pypistats.org/packages/smartrent-py)
+[![GitHub](https://img.shields.io/github/license/ZacheryThomas/smartrent.py.svg)](LICENSE.txt)
+
 Unofficial api for SmartRent devices
 
 Uses websockets for communication and supports async functions
