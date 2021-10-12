@@ -86,7 +86,7 @@ async def async_get_devices_data(email:str, password:str, aiohttp_session:aiohtt
     '''
     resident_page_text = await async_get_resident_page_text(email, password, aiohttp_session)
 
-    matches = re.search(r'bundle-props="(.*)" ', resident_page_text)
+    matches = re.search(r'bundle-props="(.*)"', resident_page_text)
     if matches:
         data = html.unescape(matches[1])
         data = json.loads(data)
