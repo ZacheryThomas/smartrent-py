@@ -42,9 +42,9 @@ async def async_login_to_api(email:str, password:str, aiohttp_session:aiohttp.Cl
         'password': password
     })
 
-    json = await resp.json()
+    resp_json = await resp.json()
 
-    if json.get('error', '') == 'invalid_credentials':
+    if resp_json.get('error', '') == 'invalid_credentials':
         raise InvalidAuthError("Invalid credentials")
 
 
