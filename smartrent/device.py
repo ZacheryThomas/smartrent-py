@@ -106,8 +106,11 @@ class Device():
         '''
         Starts running ``update_state`` in the background
         '''
-        _LOGGER.info('%s: Starting updater task', self._name)
-        self._updater_task = asyncio.create_task(self._async_update_state())
+        if not self._updater_task:
+            _LOGGER.info('%s: Starting updater task', self._name)
+            self._updater_task = asyncio.create_task(self._async_update_state())
+        else:
+            _LOGGER.warn('%s: Updater task already running', self._name)
 
 
     def stop_updater(self):
