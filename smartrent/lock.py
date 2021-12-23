@@ -1,8 +1,8 @@
 from typing import Optional
 import logging
 
-import aiohttp
 from .device import Device
+from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -12,12 +12,10 @@ class DoorLock(Device):
     '''
     def __init__(
         self,
-        email: str,
-        password: str,
         device_id: int,
-        aiohttp_session:aiohttp.ClientSession=None
+        client: Client
     ):
-        super().__init__(email, password, device_id, aiohttp_session)
+        super().__init__(device_id, client)
         self._locked = None
         self._notification = None
 

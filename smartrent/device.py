@@ -6,8 +6,7 @@ from typing import Union
 import logging
 
 import websockets
-import aiohttp
-from .utils import async_get_token, async_get_devices_data
+from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,27 +22,16 @@ class Device():
     '''
     def __init__(
         self,
-        email:str,
-        password:str,
         device_id:Union[str, int],
-        aiohttp_session:aiohttp.ClientSession=None
+        client:Client
     ):
         self._device_id = int(device_id)
         self._name: str = ''
-        self._token: str = None
-        self._email =  email
-        self._password = password
         self._update_callback_func = None
         self._updater_task = None
 
-        self._im_managing_session = not bool(aiohttp_session)
-        self._session = aiohttp.ClientSession() if not aiohttp_session else aiohttp_session
+        self._client: Client = client
 
-
-    def __del__(self):
-        if not self._session.closed and self._im_managing_session:
-            _LOGGER.info('%s: closing session %s', self._name, self._session)
-            asyncio.create_task(self._session.close())
 
     @staticmethod
     def _structure_attrs(attrs: list):
@@ -56,9 +44,9 @@ class Device():
 
         for attr in attrs:
             name = attr.get('name')
-            last_read_state = attr.get('last_read_state')
+            state = attr.get('state')
 
-            structure[name] = last_read_state
+            structure[name] = state
         return structure
 
 
@@ -80,10 +68,10 @@ class Device():
         Calls function passed into ``set_update_callback`` if it exists.
         '''
         _LOGGER.info('%s: Fetching Status res page call...', self._name)
-        data = await async_get_devices_data(self._email, self._password, self._session)
+        data = await self._client.async_get_devices_data()
 
         # Find device id that belongs to me then call _fetch_state_helper
-        for device in data['devices']:
+        for device in data:
             if device['id'] == self._device_id:
                 self._fetch_state_helper(device)
 
@@ -92,14 +80,6 @@ class Device():
                         await self._update_callback_func()
                     else:
                         self._update_callback_func()
-
-
-    async def _async_update_token(self):
-        '''
-        Updates the internal websocket token for the device
-        '''
-        _LOGGER.info('%s: Update Token res page call...', self._name)
-        self._token = await async_get_token(self._email, self._password, self._session)
 
 
     def start_updater(self):
@@ -147,9 +127,7 @@ class Device():
 
         Calls ``_update_parser`` method for device when event is found
         '''
-        await self._async_update_token()
-
-        uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
+        uri = SMARTRENT_WEBSOCKET_URI.format(self._client.token)
 
         async with websockets.connect(uri) as websocket:
             joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
@@ -186,7 +164,7 @@ class Device():
                     _LOGGER.warning('%s: Got excpetion: %s', self._name, exc)
 
                     _LOGGER.info('%s: Getting new token', self._name)
-                    await self._async_update_token()
+                    await self._client._async_refresh_token()
 
                     # Lets fetch device state just to make sure
                     # we didn't miss anything wile the socket was down
@@ -194,7 +172,7 @@ class Device():
                     await self._async_fetch_state()
 
                     _LOGGER.info('%s: Reconnecting to Websocket...', self._name)
-                    uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
+                    uri = SMARTRENT_WEBSOCKET_URI.format(self._client.token)
 
                     websocket = await websockets.connect(uri)
                     _LOGGER.info('%s: Connected!', self._name)
@@ -233,18 +211,17 @@ class Device():
         '''
         _LOGGER.info('sending payload %s', payload)
 
-        joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
-        uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
-
         async def sender(uri: str, payload: str):
             async with websockets.connect(uri) as websocket:
+                joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
+
                 # Join topic given device id
                 await websocket.send(joiner)
                 # Send payload
                 await websocket.send(payload)
 
         try:
-            uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
+            uri = SMARTRENT_WEBSOCKET_URI.format(self._client.token)
 
             await sender(uri, payload)
 
@@ -252,8 +229,8 @@ class Device():
             _LOGGER.debug('Possible issue during send_payload: %s', exc)
 
             # update token once
-            await self._async_update_token()
+            await self._client._async_refresh_token()
 
-            uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
+            uri = SMARTRENT_WEBSOCKET_URI.format(self._client.token)
 
             await sender(uri, payload)

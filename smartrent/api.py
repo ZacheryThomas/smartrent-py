@@ -6,7 +6,7 @@ import aiohttp
 
 from .lock import DoorLock
 from .thermostat import Thermostat
-from .utils import async_get_devices_data, async_login_to_api
+from .utils import Client
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,44 +16,36 @@ class API():
         self._device_list = []
         self._email = email
         self._password = password
+        self._session = aiohttp_session
 
-        self._im_managing_session = not bool(aiohttp_session)
-        self._session = aiohttp.ClientSession() if not aiohttp_session else aiohttp_session
-
-
-    def __del__(self):
-        if not self._session.closed and self._im_managing_session:
-            _LOGGER.info('API closing session %s', self._session)
-            asyncio.create_task(self._session.close())
-
+        self.client: Client = Client(email, password, aiohttp_session)
 
     async def async_fetch_devices(self):
         '''
         Fetches list of devices by calling SmartRent api
         '''
-        _LOGGER.info('Fetching devices...')
-        data = await async_get_devices_data(
-            self._email,
-            self._password,
-            self._session
-        )
+        _LOGGER.info('Fetching devices via API...')
+        await self.client._async_refresh_token()
+        data = await self.client.async_get_devices_data()
+        _LOGGER.info('Got devices!')
 
-        for device in data.get('devices', []):
+        for device in data:
             device_id = device.get('id')
             device_type = device.get('type')
 
             device_object:Union['Thermostat', 'DoorLock'] = None
 
             if device_type == 'thermostat':
-                device_object = Thermostat(self._email, self._password, device_id, self._session)
+                device_object = Thermostat(device_id, self.client)
 
             elif device_type == 'entry_control':
-                device_object = DoorLock(self._email, self._password, device_id, self._session)
+                device_object = DoorLock(device_id, self.client)
 
             if device_object:
                 # pass in intial device config
                 device_object._fetch_state_helper(device)
-                # await device_object._async_update_token()
+
+                # add device to device_list
                 self._device_list.append(device_object)
 
 
@@ -86,14 +78,11 @@ async def async_login(
     ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
     '''
 
-    session = aiohttp_session if aiohttp_session else aiohttp.ClientSession()
-
-    smart_rent_api = API(email, password, session)
+    smart_rent_api = API(email, password, aiohttp_session)
 
     # if this function makes a session, let API object handle session cleanup
     smart_rent_api._im_managing_session = not bool(aiohttp_session)
 
-    await async_login_to_api(email, password, session)
     await smart_rent_api.async_fetch_devices()
 
     return smart_rent_api
