@@ -61,7 +61,7 @@ class Device():
 
     async def _async_fetch_state(self):
         '''
-        Fetches device information from SmartRent `/resident` page
+        Fetches device information from SmartRent api
 
         Calls ``_fetch_state_helper`` so device can parse out info and update its state.
 
@@ -90,7 +90,7 @@ class Device():
             _LOGGER.info('%s: Starting updater task', self._name)
             self._updater_task = asyncio.create_task(self._async_update_state())
         else:
-            _LOGGER.warn('%s: Updater task already running', self._name)
+            _LOGGER.warning('%s: Updater task already running', self._name)
 
 
     def stop_updater(self):
@@ -164,7 +164,7 @@ class Device():
                     _LOGGER.warning('%s: Got excpetion: %s', self._name, exc)
 
                     _LOGGER.info('%s: Getting new token', self._name)
-                    await self._client._async_refresh_token()
+                    await self._client.async_refresh_token()
 
                     # Lets fetch device state just to make sure
                     # we didn't miss anything wile the socket was down
@@ -229,7 +229,7 @@ class Device():
             _LOGGER.debug('Possible issue during send_payload: %s', exc)
 
             # update token once
-            await self._client._async_refresh_token()
+            await self._client.async_refresh_token()
 
             uri = SMARTRENT_WEBSOCKET_URI.format(self._client.token)
 

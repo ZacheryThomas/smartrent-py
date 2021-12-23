@@ -42,7 +42,7 @@ class DoorLock(Device):
         self._locked = value
 
         # Convert to lowercase just like SmartRent website does
-        value = 'true' if value else 'false'
+        value = str(value).lower()
 
         await self._async_send_command(
             attribute_name='locked',
@@ -71,6 +71,7 @@ class DoorLock(Device):
         ``event`` dict passed in from ``_async_update_state``
         '''
         _LOGGER.info('Updating DoorLock')
+
         if event.get('name') == 'locked':
             self._locked = bool(event['last_read_state'] == 'true')
 

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import List, Union
 
@@ -8,11 +7,20 @@ from .lock import DoorLock
 from .thermostat import Thermostat
 from .utils import Client
 
-
 _LOGGER = logging.getLogger(__name__)
+
 
 class API():
     def __init__(self, email: str, password: str, aiohttp_session: aiohttp.ClientSession = None):
+        '''
+        Represents overall SmartRent api
+
+        ``email`` is the email address for your SmartRent account
+
+        ``password`` you know what it is
+
+        ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
+        '''
         self._device_list = []
         self._email = email
         self._password = password
@@ -20,12 +28,13 @@ class API():
 
         self.client: Client = Client(email, password, aiohttp_session)
 
+
     async def async_fetch_devices(self):
         '''
         Fetches list of devices by calling SmartRent api
         '''
         _LOGGER.info('Fetching devices via API...')
-        await self.client._async_refresh_token()
+        await self.client.async_refresh_token()
         data = await self.client.async_get_devices_data()
         _LOGGER.info('Got devices!')
 
@@ -79,10 +88,6 @@ async def async_login(
     '''
 
     smart_rent_api = API(email, password, aiohttp_session)
-
-    # if this function makes a session, let API object handle session cleanup
-    smart_rent_api._im_managing_session = not bool(aiohttp_session)
-
     await smart_rent_api.async_fetch_devices()
 
     return smart_rent_api

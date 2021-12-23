@@ -1,7 +1,4 @@
 import asyncio
-import re
-import html
-import json
 import logging
 
 import aiohttp
@@ -18,19 +15,30 @@ class SmartRentError(Exception):
     Base error for SmartRent
     '''
 
-    pass
-
 
 class InvalidAuthError(SmartRentError):
     '''
     Error related to invalid auth
     '''
 
-    pass
-
 
 class Client():
-    def __init__(self, email: str, password: str, aiohttp_session:aiohttp.ClientSession):
+    def __init__(
+        self,
+        email: str,
+        password: str,
+        aiohttp_session:aiohttp.ClientSession
+    ):
+        '''
+        Represents Cleint for SmartRent api.
+        Usually shared between multiple devices for best performance.
+
+        ``email`` is the email address for your SmartRent account
+
+        ``password`` you know what it is
+
+        ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
+        '''
         self._email = email
         self._password = password
 
@@ -40,29 +48,31 @@ class Client():
 
 
     def __del__(self):
+        '''
+        Handles delete of aiohttp session if class is tasked with it
+        '''
         if not self._aiohttp_session.closed and self._im_session_owner:
-            _LOGGER.info('%s: closing session %s', self._name, self._aiohttp_session)
+            _LOGGER.info('%s: closing session %s', str(self), self._aiohttp_session)
             asyncio.create_task(self._aiohttp_session.close())
 
 
     async def async_get_devices_data(self) -> dict:
+        '''
+        Gets device dictonary from SmartRent's api.
+        Also handles retry if token is bad
+        '''
         res = await self._async_get_devices_data()
         if not res:
-            _LOGGER.warn('No devices returned. Trying again with updated token...')
-            await self._async_refresh_token()
+            _LOGGER.warning('No devices returned. Trying again with updated token...')
+            await self.async_refresh_token()
 
             res = await self._async_get_devices_data()
         return res
 
 
     async def _async_get_devices_data(self) -> dict:
-        '''Gets device dictonary from SmartRents `/resident` page
-
-        ``email`` is the email address for your SmartRent account
-
-        ``password`` you know what it is
-
-        ``aiohttp_session`` uses the aiohttp_session that is passed in
+        '''
+        Gets device dictonary from SmartRent's api
         '''
 
         hubs_resp = await self._aiohttp_session.get(
@@ -89,14 +99,10 @@ class Client():
 
         return devices_list
 
-    async def _async_refresh_token(self) -> None:
-        '''Gets websocket token from SmartRents `/resident` page
 
-        ``email`` is the email address for your SmartRent account
-
-        ``password`` you know what it is
-
-        ``aiohttp_session`` uses the aiohttp_session that is passed in
+    async def async_refresh_token(self) -> None:
+        '''
+        Refreshes API token from SmartRents
         '''
         result = await self._aiohttp_session.post(
             SMARTRENT_SESSIONS_URI,
@@ -111,4 +117,6 @@ class Client():
             self.token = result['access_token']
         else:
             error_description = result['errors']['description']
-            raise Exception(f'Token not retrieved! Loggin probably not successful: {error_description}')
+            raise Exception(
+                f'Token not retrieved! Loggin probably not successful: {error_description}'
+            )
