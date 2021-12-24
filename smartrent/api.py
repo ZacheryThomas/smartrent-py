@@ -42,7 +42,7 @@ class API():
             device_id = device.get('id')
             device_type = device.get('type')
 
-            device_object:Union['Thermostat', 'DoorLock'] = None
+            device_object:Union[Thermostat, DoorLock] = None
 
             if device_type == 'thermostat':
                 device_object = Thermostat(device_id, self.client)
@@ -58,14 +58,14 @@ class API():
                 self._device_list.append(device_object)
 
 
-    def get_locks(self) -> List['DoorLock']:
+    def get_locks(self) -> List[DoorLock]:
         '''
         Gets list of DoorLocks
         '''
         return [x for x in self._device_list if isinstance(x, DoorLock)]
 
 
-    def get_thermostats(self) -> List['Thermostat']:
+    def get_thermostats(self) -> List[Thermostat]:
         '''
         Gets list of Thermostats
         '''
