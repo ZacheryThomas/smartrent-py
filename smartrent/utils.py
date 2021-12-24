@@ -28,7 +28,7 @@ class Client():
         self,
         email: str,
         password: str,
-        aiohttp_session:aiohttp.ClientSession
+        aiohttp_session: aiohttp.ClientSession
     ):
         '''
         Represents Cleint for SmartRent api.

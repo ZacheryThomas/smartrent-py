@@ -141,8 +141,8 @@ class Device():
 
                     if formatted_resp.get('type'):
                         event = (
-                            f'{formatted_resp.get("type", ""):<15}: '
-                            f'{formatted_resp.get("name", ""):<15}: '
+                            f'{formatted_resp.get("type", ""):<15} -> '
+                            f'{formatted_resp.get("name", ""):<15} -> '
                             f'{formatted_resp.get("last_read_state", ""):<20}'
                         )
                         _LOGGER.info('%s %s',self._name, event)
@@ -187,7 +187,7 @@ class Device():
                     await websocket.send(joiner)
 
 
-    async def _async_send_command(self, attribute_name:str, value:str):
+    async def _async_send_command(self, attribute_name: str, value: str):
         '''
         Sends command to SmartRent websocket
 
@@ -203,7 +203,7 @@ class Device():
         await self._async_send_payload(payload)
 
 
-    async def _async_send_payload(self, payload:str):
+    async def _async_send_payload(self, payload: str):
         '''
         Sends payload to SmartRent websocket
 

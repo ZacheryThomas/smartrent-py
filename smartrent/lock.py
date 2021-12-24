@@ -50,7 +50,7 @@ class DoorLock(Device):
         )
 
 
-    def _fetch_state_helper(self, data:dict):
+    def _fetch_state_helper(self, data: dict):
         '''
         Called when ``_async_fetch_state`` returns info
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "smartrent.py"
-version = "0.1.1"
+version = "0.1.2"
 description = "Unofficial Python API for SmartRent devices"
 readme = "README.md"
 license = "MIT"
