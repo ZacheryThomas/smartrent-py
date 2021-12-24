@@ -2,6 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/smartrent-py.svg?logo=pypi&logoColor=FFE873)](https://pypi.org/project/smartrent-py/)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/smartrent-py.svg?logo=python&logoColor=FFE873)](https://pypi.org/project/smartrent-py/)
+[![Downloads](https://static.pepy.tech/personalized-badge/smartrent-py?period=total&units=international_system&left_color=grey&right_color=orange&left_text=total%20downloads)](https://pepy.tech/project/smartrent-py)
 [![PyPI downloads](https://img.shields.io/pypi/dm/smartrent-py.svg)](https://pypistats.org/packages/smartrent-py)
 [![GitHub](https://img.shields.io/github/license/ZacheryThomas/smartrent.py.svg)](LICENSE.txt)
 
