@@ -43,7 +43,7 @@ class Client():
         self._email = email
         self._password = password
 
-        self._im_session_owner = bool(aiohttp_session)
+        self._im_session_owner = not bool(aiohttp_session)
         self._aiohttp_session = aiohttp_session if aiohttp_session else aiohttp.ClientSession()
         self.token = None
 
@@ -53,8 +53,8 @@ class Client():
         Handles delete of aiohttp session if class is tasked with it
         '''
         if not self._aiohttp_session.closed and self._im_session_owner:
-            _LOGGER.info('%s: closing session %s', str(self), self._aiohttp_session)
-            asyncio.create_task(self._aiohttp_session.close())
+            _LOGGER.info('%s: closing aiohttp session %s', str(self), self._aiohttp_session)
+            asyncio.run(self._aiohttp_session.close())
 
 
     async def async_get_devices_data(self) -> dict:
@@ -118,5 +118,6 @@ class Client():
             self.token = result['access_token']
         else:
             raise Exception(
-                f'Token not retrieved! Loggin probably not successful: {result["errors"]}'
+                'Token not retrieved! '
+                f'Loggin probably not successful: {result["errors"]}'
             )
