@@ -5,9 +5,10 @@ import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
-SMARTRENT_SESSIONS_URI = 'https://control.smartrent.com/api/v2/sessions'
-SMARTRENT_HUBS_URI = 'https://control.smartrent.com/api/v2/hubs'
-SMARTRENT_HUBS_ID_URI = 'https://control.smartrent.com/api/v2/hubs/{}/devices'
+SMARTRENT_BASE_URI     = 'https://control.smartrent.com/api/v2/'
+SMARTRENT_SESSIONS_URI = SMARTRENT_BASE_URI + 'sessions'
+SMARTRENT_HUBS_URI     = SMARTRENT_BASE_URI + 'hubs'
+SMARTRENT_HUBS_ID_URI  = SMARTRENT_BASE_URI + 'hubs/{}/devices'
 
 
 class SmartRentError(Exception):
