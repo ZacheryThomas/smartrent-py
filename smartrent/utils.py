@@ -117,7 +117,6 @@ class Client():
         if not result.get('errors'):
             self.token = result['access_token']
         else:
-            error_description = result['errors']['description']
             raise Exception(
-                f'Token not retrieved! Loggin probably not successful: {error_description}'
+                f'Token not retrieved! Loggin probably not successful: {result["errors"]}'
             )
