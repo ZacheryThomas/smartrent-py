@@ -137,11 +137,13 @@ class Thermostat(Device):
         self._name = data['name']
 
         attrs = self._structure_attrs(data['attributes'])
-        self._current_temp = int(attrs['current_temp'])
-        self._current_humidity = int(attrs['current_humidity'])
 
-        self._cooling_setpoint = int(attrs['cooling_setpoint'])
-        self._heating_setpoint = int(attrs['heating_setpoint'])
+        float_to_int = lambda x: int(float(x))
+        self._current_temp = float_to_int(attrs['current_temp'])
+        self._current_humidity = float_to_int(attrs['current_humidity'])
+
+        self._cooling_setpoint = float_to_int(attrs['cooling_setpoint'])
+        self._heating_setpoint = float_to_int(attrs['heating_setpoint'])
 
         self._mode = attrs['mode']
         self._fan_mode = attrs.get('fan_mode')
