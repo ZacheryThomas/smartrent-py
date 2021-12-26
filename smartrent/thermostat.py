@@ -144,7 +144,7 @@ class Thermostat(Device):
         self._heating_setpoint = int(attrs['heating_setpoint'])
 
         self._mode = attrs['mode']
-        self._fan_mode = attrs['fan_mode']
+        self._fan_mode = attrs.get('fan_mode')
 
 
     def _update_parser(self, event: dict) -> None:
