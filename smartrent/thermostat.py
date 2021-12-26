@@ -66,7 +66,7 @@ class Thermostat(Device):
         return self._current_temp
 
 
-    async def async_set_heating_setpoint(self, value: Union[str, int]):
+    async def async_set_heating_setpoint(self, value: int):
         '''
         Sets heating setpoint
 
@@ -80,7 +80,7 @@ class Thermostat(Device):
         self._heating_setpoint = int(value)
 
 
-    async def async_set_cooling_setpoint(self, value: Union[str, int]):
+    async def async_set_cooling_setpoint(self, value: int):
         '''
         Sets cooling setpoint
 
