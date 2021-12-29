@@ -54,7 +54,12 @@ class Client():
         '''
         if not self._aiohttp_session.closed and self._im_session_owner:
             _LOGGER.info('%s: closing aiohttp session %s', str(self), self._aiohttp_session)
-            asyncio.run(self._aiohttp_session.close())
+            current_loop = None
+            try:
+                current_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                current_loop = asyncio.new_event_loop()
+            current_loop.run_until_complete(self._aiohttp_session.close())
 
 
     async def async_get_devices_data(self) -> dict:
