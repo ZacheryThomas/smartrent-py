@@ -67,7 +67,7 @@ class Device():
 
         Calls function passed into ``set_update_callback`` if it exists.
         '''
-        _LOGGER.info('%s: Fetching Status res page call...', self._name)
+        _LOGGER.info('%s: Fetching data from device endpoint...', self._name)
         data = await self._client.async_get_devices_data()
 
         # Find device id that belongs to me then call _fetch_state_helper
@@ -226,7 +226,11 @@ class Device():
             await sender(uri, payload)
 
         except websockets.exceptions.InvalidStatusCode as exc:
-            _LOGGER.debug('Possible issue during send_payload: %s', exc)
+            _LOGGER.debug(
+                'Possible issue during send_payload: "%s" '
+                'Refreshing token and retrying',
+                exc
+            )
 
             # update token once
             await self._client.async_refresh_token()
