@@ -33,6 +33,10 @@ class Device():
         self._client: Client = client
 
 
+    def __del__(self):
+        self.stop_updater()
+
+
     @staticmethod
     def _structure_attrs(attrs: list):
         '''
