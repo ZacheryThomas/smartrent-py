@@ -7,6 +7,7 @@ _LOGGER = logging.getLogger(__name__)
 
 SMARTRENT_BASE_URI     = 'https://control.smartrent.com/api/v2/'
 SMARTRENT_SESSIONS_URI = SMARTRENT_BASE_URI + 'sessions'
+SMARTRENT_TOKENS_URI   = SMARTRENT_BASE_URI + 'tokens'
 SMARTRENT_HUBS_URI     = SMARTRENT_BASE_URI + 'hubs'
 SMARTRENT_HUBS_ID_URI  = SMARTRENT_BASE_URI + 'hubs/{}/devices'
 
@@ -46,6 +47,7 @@ class Client():
         self._im_session_owner = not bool(aiohttp_session)
         self._aiohttp_session = aiohttp_session if aiohttp_session else aiohttp.ClientSession()
         self.token = None
+        self.refresh_token = None
 
 
     def __del__(self):
@@ -110,19 +112,62 @@ class Client():
         '''
         Refreshes API token from SmartRents
         '''
-        result = await self._aiohttp_session.post(
-            SMARTRENT_SESSIONS_URI,
-            json={
-                'email': self._email,
-                'password': self._password
-            }
-        )
+        response = {}
+        if self.refresh_token:
+            response = await self._async_refresh_tokens_via_refresh_token()
 
-        result = await result.json()
-        if not result.get('errors'):
-            self.token = result['access_token']
+            # if refresh token has an error, default to email
+            if response.get('errors'):
+                codes = [err['code'] for err in response.get('errors')]
+                if 'unauthorized' in codes:
+                    _LOGGER.warning(
+                        'Refreshing with refresh_token failed with %s. '
+                        'Trying with email and pass instead.',
+                        response['errors']
+                    )
+                    response = await self._async_refresh_tokens_via_email()
         else:
-            raise Exception(
+            response = await self._async_refresh_tokens_via_email()
+
+
+        if not response.get('errors'):
+            self.token = response['access_token']
+            self.refresh_token = response['refresh_token']
+            self.token_exp_time = response['expires']
+        else:
+            raise InvalidAuthError(
                 'Token not retrieved! '
-                f'Loggin probably not successful: {result["errors"]}'
+                f'Loggin probably not successful: {response["errors"]}'
             )
+
+
+    async def _async_refresh_tokens_via_email(self) -> dict:
+        '''
+        Calls api endpoint to get initial tokens with email and password
+        '''
+        _LOGGER.info('Refreshing tokens with email')
+        data = {
+            'email': self._email,
+            'password': self._password
+        }
+        resp = await self._aiohttp_session.post(
+            SMARTRENT_SESSIONS_URI,
+            json=data
+        )
+        return await resp.json()
+
+
+
+    async def _async_refresh_tokens_via_refresh_token(self) -> dict:
+        '''
+        Calls api endpoint to get tokens given a refresh token
+        '''
+        _LOGGER.info('Refreshing tokens with refresh token')
+        headers = {
+            'authorization-x-refresh': self.refresh_token
+        }
+        resp = await self._aiohttp_session.post(
+            SMARTRENT_TOKENS_URI,
+            headers=headers
+        )
+        return await resp.json()
