@@ -1,0 +1,25 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+  # schedule:
+  #   - cron: "0 0 * * *"
+
+jobs:
+  black:
+    name: Check Black
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: rickstaa/action-black@v1
+        with:
+          black_args: "smartrent --check"
+
+  flake8:
+    name: Check Flake8
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+      - run: pip install flake8
+      - run: flake8 smartrent
