@@ -11,18 +11,19 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class API:
+    """
+    Represents overall SmartRent api
+
+    ``email`` is the email address for your SmartRent account
+
+    ``password`` you know what it is
+
+    ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
+    """
+
     def __init__(
         self, email: str, password: str, aiohttp_session: aiohttp.ClientSession = None
     ):
-        """
-        Represents overall SmartRent api
-
-        ``email`` is the email address for your SmartRent account
-
-        ``password`` you know what it is
-
-        ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
-        """
         self._device_list = []
         self._email = email
         self._password = password
@@ -75,7 +76,9 @@ async def async_login(
     email: str, password: str, aiohttp_session: aiohttp.ClientSession = None
 ) -> API:
     """
-    Logs into SmartRent and retruns an `API` object
+    Logs into SmartRent and retruns an ``API`` object.
+
+    Prepopulates ``API`` object with devices.
 
     ``email`` is the email address for your SmartRent account
 

@@ -25,11 +25,8 @@ class InvalidAuthError(SmartRentError):
 
 
 class Client:
-    def __init__(
-        self, email: str, password: str, aiohttp_session: aiohttp.ClientSession = None
-    ):
         """
-        Represents Cleint for SmartRent api.
+    Represents Client for SmartRent http api.
         Usually shared between multiple devices for best performance.
 
         ``email`` is the email address for your SmartRent account
@@ -38,6 +35,10 @@ class Client:
 
         ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
         """
+
+    def __init__(
+        self, email: str, password: str, aiohttp_session: aiohttp.ClientSession = None
+    ):
         self._email = email
         self._password = password
 
