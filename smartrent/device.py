@@ -124,7 +124,7 @@ class Device:
 
         Calls ``_update_parser`` method for device when event is found
         """
-        uri = SMARTRENT_WEBSOCKET_URI.format(self._client.token)
+        uri = SMARTRENT_WEBSOCKET_URI.format(self._client.get_current_token())
 
         async with websockets.connect(uri) as websocket:
             joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
@@ -169,7 +169,9 @@ class Device:
                     await self._async_fetch_state()
 
                     _LOGGER.info("%s: Reconnecting to Websocket...", self._name)
-                    uri = SMARTRENT_WEBSOCKET_URI.format(self._client.token)
+                    uri = SMARTRENT_WEBSOCKET_URI.format(
+                        self._client.get_current_token()
+                    )
 
                     websocket = await websockets.connect(uri)
                     _LOGGER.info("%s: Connected!", self._name)
@@ -214,7 +216,7 @@ class Device:
                 await websocket.send(payload)
 
         try:
-            uri = SMARTRENT_WEBSOCKET_URI.format(self._client.token)
+            uri = SMARTRENT_WEBSOCKET_URI.format(self._client.get_current_token())
 
             await sender(uri, payload)
 
@@ -228,6 +230,6 @@ class Device:
             # update token once
             await self._client.async_refresh_token()
 
-            uri = SMARTRENT_WEBSOCKET_URI.format(self._client.token)
+            uri = SMARTRENT_WEBSOCKET_URI.format(self._client.get_current_token())
 
             await sender(uri, payload)

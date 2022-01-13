@@ -25,16 +25,16 @@ class InvalidAuthError(SmartRentError):
 
 
 class Client:
-        """
+    """
     Represents Client for SmartRent http api.
-        Usually shared between multiple devices for best performance.
+    Usually shared between multiple devices for best performance.
 
-        ``email`` is the email address for your SmartRent account
+    ``email`` is the email address for your SmartRent account
 
-        ``password`` you know what it is
+    ``password`` you know what it is
 
-        ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
-        """
+    ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
+    """
 
     def __init__(
         self, email: str, password: str, aiohttp_session: aiohttp.ClientSession = None
@@ -46,8 +46,9 @@ class Client:
         self._aiohttp_session = (
             aiohttp_session if aiohttp_session else aiohttp.ClientSession()
         )
-        self.token = None
-        self.refresh_token = None
+        self._token = None
+        self._refresh_token = None
+        self._token_exp_time = None
 
     def __del__(self):
         """
@@ -86,7 +87,7 @@ class Client:
         """
 
         hubs_resp = await self._aiohttp_session.get(
-            SMARTRENT_HUBS_URI, headers={"authorization": f"Bearer {self.token}"}
+            SMARTRENT_HUBS_URI, headers={"authorization": f"Bearer {self._token}"}
         )
         hubs = await hubs_resp.json()
 
@@ -94,7 +95,7 @@ class Client:
         for hub in hubs:
             devices_resp = await self._aiohttp_session.get(
                 SMARTRENT_HUBS_ID_URI.format(hub["id"]),
-                headers={"authorization": f"Bearer {self.token}"},
+                headers={"authorization": f"Bearer {self._token}"},
             )
             devices = await devices_resp.json()
 
@@ -104,12 +105,16 @@ class Client:
 
         return devices_list
 
+    def get_current_token(self) -> str:
+        """Returns current token"""
+        return self._token
+
     async def async_refresh_token(self) -> None:
         """
         Refreshes API token from SmartRents
         """
         response = {}
-        if self.refresh_token:
+        if self._refresh_token:
             response = await self._async_refresh_tokens_via_refresh_token()
 
             # if refresh token has an error, default to email
@@ -126,9 +131,9 @@ class Client:
             response = await self._async_refresh_tokens_via_email()
 
         if not response.get("errors"):
-            self.token = response["access_token"]
-            self.refresh_token = response["refresh_token"]
-            self.token_exp_time = response["expires"]
+            self._token = response["access_token"]
+            self._refresh_token = response["refresh_token"]
+            self._token_exp_time = response["expires"]
             _LOGGER.info("Tokens refreshed!")
         else:
             raise InvalidAuthError(
@@ -150,6 +155,6 @@ class Client:
         Calls api endpoint to get tokens given a refresh token
         """
         _LOGGER.info("Refreshing tokens with refresh token")
-        headers = {"authorization-x-refresh": self.refresh_token}
+        headers = {"authorization-x-refresh": self._refresh_token}
         resp = await self._aiohttp_session.post(SMARTRENT_TOKENS_URI, headers=headers)
         return await resp.json()
