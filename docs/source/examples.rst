@@ -57,3 +57,42 @@ This code gets the first :class:`smartrent.lock.DoorLock` we find through the ap
         await first_lock.async_set_locked(True)
 
     asyncio.run(main())
+
+Using Events and Callbacks
+**************************
+
+If you need to get live updates to your device object from SmartRent, you can do that by calling :meth:`smartrent.device.Device.start_updater`. You can stop getting updates by calling :meth:`smartrent.device.Device.stop_updater`.
+
+You can also set a callback function via :meth:`smartrent.device.Device.set_update_callback` that will be called when an update is triggered.
+
+For the below example, every time an event is triggered from our :class:`smartrent.lock.DoorLock` we then attempt to lock the :class:`smartrent.lock.DoorLock` by running ``lock.async_set_locked(True)``.
+
+.. code-block:: bash
+
+    import asyncio
+    from smartrent import async_login
+
+    async def main():
+        api = await async_login('<EMAIL>', '<PASSWORD>')
+
+        locks = api.get_locks()
+        lock = locks[0]
+
+        # Allow lock object to recieve live updates
+        lock.start_updater()
+
+        # Callback function for an event
+        async def on_evt():
+            print('Triggered by an event... Locking door!')
+            await lock.async_set_locked(True)
+
+        # Pass in Callback function to set_update_callback()
+        lock.set_update_callback(on_evt)
+
+        while True:
+            await asyncio.sleep(10)
+
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
