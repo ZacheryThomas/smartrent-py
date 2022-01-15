@@ -120,12 +120,12 @@ class Thermostat(Device):
             if x and x != "None":
                 return int(float(x))
 
-        self._current_temp = float_to_int(attrs["current_temp"])
+        self._current_temp = float_to_int(attrs.get("current_temp"))
 
-        self._cooling_setpoint = float_to_int(attrs["cooling_setpoint"])
-        self._heating_setpoint = float_to_int(attrs["heating_setpoint"])
+        self._cooling_setpoint = float_to_int(attrs.get("cooling_setpoint"))
+        self._heating_setpoint = float_to_int(attrs.get("heating_setpoint"))
 
-        self._current_humidity = float_to_int(attrs["current_humidity"])
+        self._current_humidity = float_to_int(attrs.get("current_humidity"))
 
         self._mode = attrs["mode"]
         self._fan_mode = attrs.get("fan_mode")
