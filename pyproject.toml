@@ -1,11 +1,12 @@
 [tool.poetry]
 name = "smartrent.py"
-version = "0.1.4"
+version = "0.1.5"
 description = "Unofficial Python API for SmartRent devices"
 readme = "README.md"
 license = "MIT"
 authors = ["Zachery Thomas <zacherythomas12@gmail.com>"]
 repository = "https://github.com/zacherythomas/smartrent.py"
+documentation = "https://smartrentpy.readthedocs.io"
 packages = [
   { include = "smartrent" }
 ]
