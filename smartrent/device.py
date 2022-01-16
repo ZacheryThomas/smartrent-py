@@ -51,6 +51,8 @@ class Device:
             state = attr.get("state")
 
             structure[name] = state
+
+        _LOGGER.info("constructed attribute structure: %s", structure)
         return structure
 
     def _fetch_state_helper(self, data: dict):
