@@ -55,18 +55,19 @@ class Client:
         Handles delete of aiohttp session if class is tasked with it
         """
         if not self._aiohttp_session.closed and self._im_session_owner:
-            current_loop = None
-            try:
-                _LOGGER.info("Finding running event loop")
-                current_loop = asyncio.get_running_loop()
-            except RuntimeError:
-                _LOGGER.info("Making new event loop")
-                current_loop = asyncio.new_event_loop()
-
-            _LOGGER.info(
+            _LOGGER.debug(
                 "%s: closing aiohttp session %s", str(self), self._aiohttp_session
             )
-            current_loop.create_task(self._aiohttp_session.close())
+
+            try:
+                _LOGGER.debug("Finding running event loop")
+                current_loop = asyncio.get_running_loop()
+                current_loop.create_task(self._aiohttp_session.close())
+
+            except RuntimeError:
+                _LOGGER.debug("Making new event loop")
+                new_loop = asyncio.new_event_loop()
+                new_loop.run_until_complete(self._aiohttp_session.close())
 
     async def async_get_devices_data(self) -> dict:
         """
