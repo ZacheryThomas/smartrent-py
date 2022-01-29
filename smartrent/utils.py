@@ -75,12 +75,17 @@ class Client:
         Gets list of device dictonaries from SmartRent's api.
         Also handles retry if token is bad
         """
-        res = await self._async_get_devices_data()
-        if not res:
-            _LOGGER.warning("No devices returned. Trying again with updated token...")
+        if not self._token:
+            await self.async_refresh_token()
+
+        try:
+            res = await self._async_get_devices_data()
+        except InvalidAuthError:
+            _LOGGER.warning("InvalidAuth detected. Trying again with updated token...")
             await self.async_refresh_token()
 
             res = await self._async_get_devices_data()
+
         return res
 
     async def _async_get_devices_data(self) -> List[dict]:
@@ -92,6 +97,10 @@ class Client:
             SMARTRENT_HUBS_URI, headers={"authorization": f"Bearer {self._token}"}
         )
         hubs = await hubs_resp.json()
+
+        if not hubs_resp.ok:
+            if hubs.get("errors", [{}])[0].get("code") == "unauthorized":
+                raise InvalidAuthError(hubs.get("errors"))
 
         devices_list = []
         for hub in hubs:
