@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import List
 
 import aiohttp
 
@@ -69,9 +70,9 @@ class Client:
                 new_loop = asyncio.new_event_loop()
                 new_loop.run_until_complete(self._aiohttp_session.close())
 
-    async def async_get_devices_data(self) -> dict:
+    async def async_get_devices_data(self) -> List[dict]:
         """
-        Gets device dictonary from SmartRent's api.
+        Gets list of device dictonaries from SmartRent's api.
         Also handles retry if token is bad
         """
         res = await self._async_get_devices_data()
@@ -82,9 +83,9 @@ class Client:
             res = await self._async_get_devices_data()
         return res
 
-    async def _async_get_devices_data(self) -> dict:
+    async def _async_get_devices_data(self) -> List[dict]:
         """
-        Gets device dictonary from SmartRent's api
+        Gets list of device dictonaries from SmartRent's api
         """
 
         hubs_resp = await self._aiohttp_session.get(
