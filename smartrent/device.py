@@ -186,7 +186,7 @@ class Device:
                 )
                 retries += 1
 
-                wait_time = 1.25 ** retries
+                wait_time = 1.25**retries
                 wait_time = wait_time if wait_time < 300 else 300
                 _LOGGER.warning("%s: Got excpetion: %s", self._name, exc)
                 _LOGGER.warning(
