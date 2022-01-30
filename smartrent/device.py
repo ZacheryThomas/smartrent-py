@@ -6,6 +6,7 @@ from typing import Union
 import logging
 
 import websockets
+import aiohttp
 from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
@@ -126,66 +127,69 @@ class Device:
 
         Calls ``_update_parser`` method for device when event is found
         """
-        uri = SMARTRENT_WEBSOCKET_URI.format(self._client.get_current_token())
+        retries = 0
+        while True:
+            try:
+                _LOGGER.info("%s: Getting new token", self._name)
+                await self._client.async_refresh_token()
+                token = self._client.get_current_token()
 
-        async with websockets.connect(uri) as websocket:
-            joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
-            await websocket.send(joiner)
+                _LOGGER.info("%s: Fetching current device status...", self._name)
+                await self._async_fetch_state()
 
-            while True:
-                try:
-                    resp = await websocket.recv()
+                uri = SMARTRENT_WEBSOCKET_URI.format(token)
 
-                    formatted_resp = json.loads(f'{{"data":{resp}}}')["data"][4]
+                _LOGGER.info("%s: Connecting to Websocket...", self._name)
+                async with websockets.connect(uri) as websocket:
+                    retries = 0
 
-                    if formatted_resp.get("type"):
-                        event = (
-                            f'{formatted_resp.get("type", ""):<15} -> '
-                            f'{formatted_resp.get("name", ""):<15} -> '
-                            f'{formatted_resp.get("last_read_state", ""):<20}'
-                        )
-                        _LOGGER.info("%s %s", self._name, event)
-                    else:
-                        _LOGGER.info("%s %s", self._name, resp)
-
-                    self._update_parser(formatted_resp)
-
-                    if self._update_callback_func:
-                        if inspect.iscoroutinefunction(self._update_callback_func):
-                            await self._update_callback_func()
-                        else:
-                            self._update_callback_func()
-
-                except (
-                    websockets.exceptions.ConnectionClosedError,
-                    websockets.exceptions.ConnectionClosedOK,
-                ) as exc:
-                    _LOGGER.warning("%s: Got excpetion: %s", self._name, exc)
-
-                    _LOGGER.info("%s: Getting new token", self._name)
-                    await self._client.async_refresh_token()
-
-                    # Lets fetch device state just to make sure
-                    # we didn't miss anything wile the socket was down
-                    _LOGGER.info("%s: Fetching current device status...", self._name)
-                    await self._async_fetch_state()
-
-                    _LOGGER.info("%s: Reconnecting to Websocket...", self._name)
-                    uri = SMARTRENT_WEBSOCKET_URI.format(
-                        self._client.get_current_token()
-                    )
-
-                    websocket = await websockets.connect(uri)
-                    _LOGGER.info("%s: Connected!", self._name)
-
+                    joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
                     _LOGGER.info(
                         "%s: Joining topic for %s:%s ...",
                         self._name,
                         self._name,
                         self._device_id,
                     )
-                    joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
                     await websocket.send(joiner)
+
+                    while True:
+                        resp = await websocket.recv()
+
+                        formatted_resp = json.loads(f"{resp}")[4]
+
+                        if formatted_resp.get("type"):
+                            event = (
+                                f'{formatted_resp.get("type", ""):<15} -> '
+                                f'{formatted_resp.get("name", ""):<15} -> '
+                                f'{formatted_resp.get("last_read_state", ""):<20}'
+                            )
+                            _LOGGER.info("%s %s", self._name, event)
+                        else:
+                            _LOGGER.info("%s %s", self._name, resp)
+
+                        self._update_parser(formatted_resp)
+
+                        if self._update_callback_func:
+                            if inspect.iscoroutinefunction(self._update_callback_func):
+                                await self._update_callback_func()
+                            else:
+                                self._update_callback_func()
+
+            except (
+                websockets.exceptions.ConnectionClosedError,
+                websockets.exceptions.ConnectionClosedOK,
+                aiohttp.client_exceptions.ClientConnectorError,
+                websockets.exceptions.InvalidStatusCode
+            ) as exc:
+                _LOGGER.warning("Exception occured! %s %s", type(exc).__name__, type(exc))
+                retries += 1
+
+                wait_time = 1.25 ** retries
+                wait_time = wait_time if wait_time < 300 else 300
+                _LOGGER.warning("%s: Got excpetion: %s", self._name, exc)
+                _LOGGER.warning("%s: Retrying websocket in %s seconds...", self._name, wait_time)
+
+                await asyncio.sleep(wait_time)
 
     async def _async_send_command(self, attribute_name: str, value: str):
         """
