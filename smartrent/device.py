@@ -179,15 +179,19 @@ class Device:
                 websockets.exceptions.ConnectionClosedError,
                 websockets.exceptions.ConnectionClosedOK,
                 aiohttp.client_exceptions.ClientConnectorError,
-                websockets.exceptions.InvalidStatusCode
+                websockets.exceptions.InvalidStatusCode,
             ) as exc:
-                _LOGGER.warning("Exception occured! %s %s", type(exc).__name__, type(exc))
+                _LOGGER.warning(
+                    "Exception occured! %s %s", type(exc).__name__, type(exc)
+                )
                 retries += 1
 
                 wait_time = 1.25 ** retries
                 wait_time = wait_time if wait_time < 300 else 300
                 _LOGGER.warning("%s: Got excpetion: %s", self._name, exc)
-                _LOGGER.warning("%s: Retrying websocket in %s seconds...", self._name, wait_time)
+                _LOGGER.warning(
+                    "%s: Retrying websocket in %s seconds...", self._name, wait_time
+                )
 
                 await asyncio.sleep(wait_time)
 
