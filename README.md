@@ -1,12 +1,12 @@
 # SmartRent API
 
-[![PyPI version](https://img.shields.io/pypi/v/smartrent-py.svg?logo=pypi&logoColor=FFE873)](https://pypi.org/project/smartrent-py/)
-[![Supported Python versions](https://img.shields.io/pypi/pyversions/smartrent-py.svg?logo=python&logoColor=FFE873)](https://pypi.org/project/smartrent-py/)
-[![Downloads](https://static.pepy.tech/personalized-badge/smartrent-py?period=total&units=international_system&left_color=grey&right_color=orange&left_text=total%20downloads)](https://pepy.tech/project/smartrent-py)
-[![PyPI downloads](https://img.shields.io/pypi/dm/smartrent-py.svg)](https://pypistats.org/packages/smartrent-py)
-[![GitHub](https://img.shields.io/github/license/ZacheryThomas/smartrent.py.svg)](LICENSE.txt)
-[![Documentation Status](https://readthedocs.org/projects/smartrentpy/badge/?version=latest)](https://smartrentpy.readthedocs.io/en/latest/?badge=latest)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![PyPI version][pypi-version-badge]](https://pypi.org/project/smartrent-py/)
+[![Supported Python versions][supported-versions-badge]](https://pypi.org/project/smartrent-py/)
+[![Downloads][downloads-badge]](https://pepy.tech/project/smartrent-py)
+[![PyPI downloads monthly][m-downloads-badge]](https://pypistats.org/packages/smartrent-py)
+[![GitHub License][license-badge]](LICENSE.txt)
+[![Documentation Status][docs-badge]](https://smartrentpy.readthedocs.io/en/latest/?badge=latest)
+[![Code style: black][black-badge]](https://github.com/psf/black)
 
 Unofficial api for SmartRent devices
 
@@ -93,3 +93,11 @@ async def main():
 
 asyncio.run(main())
 ```
+
+[pypi-version-badge]: https://img.shields.io/pypi/v/smartrent-py.svg?logo=pypi&logoColor=FFE873&style=for-the-badge
+[supported-versions-badge]: https://img.shields.io/pypi/pyversions/smartrent-py.svg?logo=python&logoColor=FFE873&style=for-the-badge
+[downloads-badge]: https://static.pepy.tech/personalized-badge/smartrent-py?period=total&units=international_system&left_color=grey&right_color=orange&left_text=total%20downloads&style=for-the-badge
+[m-downloads-badge]: https://img.shields.io/pypi/dm/smartrent-py.svg?style=for-the-badge
+[license-badge]: https://img.shields.io/github/license/ZacheryThomas/smartrent.py.svg?style=for-the-badge
+[docs-badge]: https://readthedocs.org/projects/smartrentpy/badge/?version=latest&style=for-the-badge
+[black-badge]: https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge
