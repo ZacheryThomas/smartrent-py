@@ -2,7 +2,6 @@
 
 [![PyPI version][pypi-version-badge]](https://pypi.org/project/smartrent-py/)
 [![Supported Python versions][supported-versions-badge]](https://pypi.org/project/smartrent-py/)
-[![Downloads][downloads-badge]](https://pepy.tech/project/smartrent-py)
 [![PyPI downloads monthly][m-downloads-badge]](https://pypistats.org/packages/smartrent-py)
 [![GitHub License][license-badge]](LICENSE.txt)
 [![Documentation Status][docs-badge]](https://smartrentpy.readthedocs.io/en/latest/?badge=latest)
@@ -93,6 +92,11 @@ async def main():
 
 asyncio.run(main())
 ```
+
+# TODOs
+
+* Add support for water sensors. I'm not brave enough to get my sensor wet and see what messages it provides
+* Add support for Two Factor Auth
 
 [pypi-version-badge]: https://img.shields.io/pypi/v/smartrent-py.svg?logo=pypi&logoColor=FFE873&style=for-the-badge
 [supported-versions-badge]: https://img.shields.io/pypi/pyversions/smartrent-py.svg?logo=python&logoColor=FFE873&style=for-the-badge
