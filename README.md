@@ -29,7 +29,7 @@ pip install smartrent.py
 ```
 
 ## Getting an API Object
-In order to get an api object to interact with, you must login with the `async_login` function. This starts and handles a web session with SmartRent's webserver.
+In order to get an api object to interact with, you must login with the `async_login` function. This starts and handles a web session with SmartRent.
 
 ```python
 import asyncio
@@ -43,7 +43,7 @@ asyncio.run(main())
 ```
 
 ## Getting Devices
-You can get lists of your devices from the api with the `get_locks` and `get_thermostats` functions. You can then interact with the devices with thier getter and setter functions.
+You can get lists of your devices from the api with the `get_locks` and `get_thermostats` functions. You can then interact with the devices with their getter and setter functions.
 
 ```python
 import asyncio
