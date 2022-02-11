@@ -5,6 +5,8 @@ import aiohttp
 
 from .lock import DoorLock
 from .thermostat import Thermostat
+from .switch import BinarySwitch
+from .sensor import LeakSensor
 from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,7 +46,7 @@ class API:
             device_id = device.get("id")
             device_type = device.get("type")
 
-            device_object: Union[Thermostat, DoorLock] = None
+            device_object: Union[Thermostat, DoorLock, BinarySwitch, LeakSensor] = None
 
             if device_type == "thermostat":
                 device_object = Thermostat(device_id, self.client)
@@ -52,12 +54,29 @@ class API:
             elif device_type == "entry_control":
                 device_object = DoorLock(device_id, self.client)
 
+            elif device_type == "switch_binary":
+                device_object = BinarySwitch(device_id, self.client)
+
+            elif device_type == "sensor_notification":
+                attr_names = [attr.get("name") for attr in device.get("attributes")]
+
+                if "leak" in attr_names:
+                    device_object = LeakSensor(device_id, self.client)
+
             if device_object:
                 # pass in intial device config
                 device_object._fetch_state_helper(device)
 
                 # add device to device_list
                 self._device_list.append(device_object)
+
+    def get_device_list(
+        self,
+    ) -> List[Union[DoorLock, Thermostat, BinarySwitch, LeakSensor]]:
+        """
+        Gets list of all devices found
+        """
+        return self._device_list
 
     def get_locks(self) -> List[DoorLock]:
         """
@@ -70,6 +89,18 @@ class API:
         Gets list of Thermostats
         """
         return [x for x in self._device_list if isinstance(x, Thermostat)]
+
+    def get_switches(self) -> List[BinarySwitch]:
+        """
+        Gets list of BinarySwitches
+        """
+        return [x for x in self._device_list if isinstance(x, BinarySwitch)]
+
+    def get_leak_sensors(self) -> List[LeakSensor]:
+        """
+        Gets list of LeakSensors
+        """
+        return [x for x in self._device_list if isinstance(x, LeakSensor)]
 
 
 async def async_login(

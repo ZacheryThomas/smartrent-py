@@ -7,20 +7,31 @@ from .utils import Client
 _LOGGER = logging.getLogger(__name__)
 
 
-class LeakSensor(Device):
+class BinarySwitch(Device):
     """
-    Represents LeakSensor SmartRent device
+    Represents BinarySwitch SmartRent device
     """
 
     def __init__(self, device_id: int, client: Client):
         super().__init__(device_id, client)
-        self._leak = None
+        self._on = None
 
-    def get_leak(self) -> Optional[bool]:
+    def get_on(self) -> Optional[bool]:
         """
-        Gets state from leak sensor
+        Gets state from switch
         """
-        return self._leak
+        return self._on
+
+    async def async_set_on(self, value: bool):
+        """
+        Sets state for switch
+        """
+        self._on = value
+
+        # Convert to lowercase just like SmartRent website does
+        value = str(value).lower()
+
+        await self._async_send_command(attribute_name="on", value=value)
 
     def _fetch_state_helper(self, data: dict):
         """
@@ -32,7 +43,7 @@ class LeakSensor(Device):
 
         attrs = self._structure_attrs(data["attributes"])
 
-        self._leak = bool(attrs["leak"] == "true")
+        self._on = bool(attrs["on"] == "true")
 
     def _update_parser(self, event: dict):
         """
@@ -40,7 +51,7 @@ class LeakSensor(Device):
 
         ``event`` dict passed in from ``_async_update_state``
         """
-        _LOGGER.info("Updating Sensor")
+        _LOGGER.info("Updating Switch")
 
-        if event.get("name") == "leak":
-            self._leak = bool(event["last_read_state"] == "true")
+        if event.get("name") == "on":
+            self._on = bool(event["last_read_state"] == "true")
