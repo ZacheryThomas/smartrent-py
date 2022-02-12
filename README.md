@@ -12,23 +12,23 @@ Unofficial api for SmartRent devices
 Uses websockets for communication and supports async functions
 
 [📚 Read the docs! 📚](https://smartrentpy.readthedocs.io)
-## Known Devices supported
-### Locks
-* Yale YRD256
+## Supported Devices
+This client supports:
+* 🔐 Door Locks
+* 🌡 Thermostats
+* 💧 Leak Sensors
+* 💡 Binary Switches
 
-### Thermostats
-* Honeywell T6 Pro (TH6320ZW2003)
 
+## Usage
 
-# Usage
-
-## Installing
+### Installation
 
 ```bash
 pip install smartrent.py
 ```
 
-## Getting an API Object
+### Getting an API Object
 In order to get an api object to interact with, you must login with the `async_login` function. This starts and handles a web session with SmartRent.
 
 ```python
@@ -42,7 +42,7 @@ async def main():
 asyncio.run(main())
 ```
 
-## Getting Devices
+### Getting Devices
 You can get lists of your devices from the api with the `get_locks` and `get_thermostats` functions. You can then interact with the devices with their getter and setter functions.
 
 ```python
@@ -62,7 +62,7 @@ async def main():
 asyncio.run(main())
 ```
 
-## Automatic Updating
+### Automatic Updating
 If you need to get live updates to your device object from SmartRent, you can do that by calling `start_updater`. You can stop getting updates by calling `stop_updater`.
 
 You can also set a callback function via `set_update_callback` that will be called when an update is triggered.
@@ -93,9 +93,34 @@ async def main():
 asyncio.run(main())
 ```
 
+## Development
+### Setting up dev enviornment
+
+```
+pip install -r requirements_test.txt
+```
+
+### Running the code formatter
+[Black](https://github.com/psf/black) is used for quick and easy code formatting
+
+```
+black smartrent
+```
+
+## Special thanks
+Much inspiration was taken from these projects:
+
+[AMcPherran/SmartRent-MQTT-Bridge](https://github.com/AMcPherran/SmartRent-MQTT-Bridge)
+
+[natanweinberger/smartrent-python](https://github.com/natanweinberger/smartrent-python)
+
+[Burry/homebridge-smartrent](https://github.com/Burry/homebridge-smartrent)
+## Versioning
+
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags).
+
 # TODOs
 
-* Add support for water sensors. I'm not brave enough to get my sensor wet and see what messages it provides
 * Add support for Two Factor Auth
 
 [pypi-version-badge]: https://img.shields.io/pypi/v/smartrent-py.svg?logo=pypi&logoColor=FFE873&style=for-the-badge
