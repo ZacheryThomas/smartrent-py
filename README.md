@@ -11,6 +11,8 @@ Unofficial api for SmartRent devices
 
 Uses websockets for communication and supports async functions
 
+Feel free to ⭐️ this repo to get notified about the latest features!
+
 [📚 Read the docs! 📚](https://smartrentpy.readthedocs.io)
 ## Supported Devices
 This client supports:
