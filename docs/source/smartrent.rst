@@ -42,18 +42,26 @@ Submodules
    :undoc-members:
    :show-inheritance:
 
-``Sensor`` class
-----------------
-
-.. autoclass:: smartrent.sensor.Sensor
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 ``Thermostat`` class
 --------------------
 
 .. autoclass:: smartrent.thermostat.Thermostat
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+``LeakSensor`` class
+----------------
+
+.. autoclass:: smartrent.sensor.LeakSensor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+``BinarySwitch`` class
+----------------
+
+.. autoclass:: smartrent.switch.BinarySwitch
    :members:
    :undoc-members:
    :show-inheritance:
