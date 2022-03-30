@@ -6,7 +6,6 @@ from typing import Union
 import logging
 
 import websockets
-import aiohttp
 from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
