@@ -175,12 +175,7 @@ class Device:
                             else:
                                 self._update_callback_func()
 
-            except (
-                websockets.exceptions.ConnectionClosedError,
-                websockets.exceptions.ConnectionClosedOK,
-                aiohttp.client_exceptions.ClientConnectorError,
-                websockets.exceptions.InvalidStatusCode,
-            ) as exc:
+            except Exception as exc:
                 _LOGGER.warning(
                     "Exception occured! %s %s", type(exc).__name__, type(exc)
                 )
