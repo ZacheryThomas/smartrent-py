@@ -2,7 +2,7 @@ import json
 import asyncio
 import inspect
 
-from typing import Union
+from typing import Union, List, Dict
 import logging
 
 import websockets
@@ -38,7 +38,7 @@ class Device:
         self.stop_updater()
 
     @staticmethod
-    def _structure_attrs(attrs: list):
+    def _structure_attrs(attrs: List[Dict[str, any]]) -> Dict[str, any]:
         """
         Converts device json object to hirearchical list of attributes
 
@@ -55,7 +55,7 @@ class Device:
         _LOGGER.info("constructed attribute structure: %s", structure)
         return structure
 
-    def _fetch_state_helper(self, data: dict):
+    def _fetch_state_helper(self, data: Dict[str, str]):
         """
         Called by ``_async_fetch_state``
 
@@ -110,7 +110,7 @@ class Device:
         """
         self._update_callback_func = func
 
-    def _update_parser(self, event: dict) -> None:
+    def _update_parser(self, event: Dict[str, any]) -> None:
         """
         Called by ``_async_update_state``
 
