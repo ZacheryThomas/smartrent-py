@@ -1,24 +1,10 @@
-import json
-import asyncio
 import inspect
-
-from typing import Union, List, Dict
 import logging
 
-import websockets
+from typing import Union, List, Dict
 from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
-
-SMARTRENT_WEBSOCKET_URI = (
-    "wss://control.smartrent.com/socket/websocket?token={}&vsn=2.0.0"
-)
-JOINER_PAYLOAD = '["null", "null", "devices:{device_id}", "phx_join", {{}}]'
-COMMAND_PAYLOAD = (
-    '["null", "null", "devices:{device_id}", "update_attributes", '
-    '{{"device_id": {device_id}, '
-    '"attributes": [{{"name": "{attribute_name}", "value": "{value}"}}]}}]'
-)
 
 
 class Device:
@@ -29,7 +15,7 @@ class Device:
     def __init__(self, device_id: Union[str, int], client: Client):
         self._device_id = int(device_id)
         self._name: str = ""
-        self._update_callback_func = None
+        self._update_callback_funcs = []
         self._updater_task = None
 
         self._client: Client = client
@@ -79,161 +65,61 @@ class Device:
             if device["id"] == self._device_id:
                 self._fetch_state_helper(device)
 
-                if self._update_callback_func:
-                    if inspect.iscoroutinefunction(self._update_callback_func):
-                        await self._update_callback_func()
+                for func in self._update_callback_funcs:
+                    if inspect.iscoroutinefunction(func):
+                        await func()
                     else:
-                        self._update_callback_func()
+                        func()
 
     def start_updater(self):
         """
-        Starts running ``update_state`` in the background
+        Allows device to update it's attrs in the background
         """
-        if not self._updater_task:
-            _LOGGER.info("%s: Starting updater task", self._name)
-            self._updater_task = asyncio.create_task(self._async_update_state())
-        else:
-            _LOGGER.warning("%s: Updater task already running", self._name)
+        self._client._subscribe_device_to_updater(self)
 
     def stop_updater(self):
         """
-        Stops running ``update_state`` in the background
+        Turns off automatic attr updates
         """
-        if self._updater_task:
-            _LOGGER.info("%s: Stopping updater task", self._name)
-            self._updater_task.cancel()
+        self._client._unsubscribe_device_to_updater(self)
 
     def set_update_callback(self, func) -> None:
         """
         Allows callback to be fired when ``_async_update_state``
         or ``_async_fetch_state`` gets new information
         """
-        self._update_callback_func = func
+
+        self._update_callback_funcs.append(func)
+
+    def unset_update_callback(self, func) -> None:
+        """
+        Removes callback from being fired when ``_async_update_state``
+        or ``_async_fetch_state`` gets new information
+        """
+
+        try:
+            self._update_callback_funcs.remove(func)
+        except ValueError:
+            pass
 
     def _update_parser(self, event: Dict[str, any]) -> None:
         """
         Called by ``_async_update_state``
 
-        Converts event dict to device param info
+        Converts event dict to device attr info
         """
         raise NotImplementedError
 
-    async def _async_update_state(self):
-        """
-        Connects to SmartRent websocket and listens for updates.
-        To be ran in the background. You can call ``start_updater`` and ``stop_updater``
-        to turn ``_async_update_state`` on or off.
+    async def _update(self, event):
+        # handle updating of device attrs
+        self._update_parser(event)
 
-        Calls ``_update_parser`` method for device when event is found
-        """
-        retries = 0
-        while True:
-            try:
-                _LOGGER.info("%s: Getting new token", self._name)
-                await self._client.async_refresh_token()
-                token = self._client.get_current_token()
-
-                _LOGGER.info("%s: Fetching current device status...", self._name)
-                await self._async_fetch_state()
-
-                uri = SMARTRENT_WEBSOCKET_URI.format(token)
-
-                _LOGGER.info("%s: Connecting to Websocket...", self._name)
-                async with websockets.connect(uri) as websocket:
-                    retries = 0
-
-                    joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
-                    _LOGGER.info(
-                        "%s: Joining topic for %s:%s ...",
-                        self._name,
-                        self._name,
-                        self._device_id,
-                    )
-                    await websocket.send(joiner)
-
-                    while True:
-                        resp = await websocket.recv()
-
-                        formatted_resp = json.loads(f"{resp}")[4]
-
-                        if formatted_resp.get("type"):
-                            event = (
-                                f'{formatted_resp.get("type", ""):<15} -> '
-                                f'{formatted_resp.get("name", ""):<15} -> '
-                                f'{formatted_resp.get("last_read_state", ""):<20}'
-                            )
-                            _LOGGER.info("%s %s", self._name, event)
-                        else:
-                            _LOGGER.info("%s %s", self._name, resp)
-
-                        self._update_parser(formatted_resp)
-
-                        if self._update_callback_func:
-                            if inspect.iscoroutinefunction(self._update_callback_func):
-                                await self._update_callback_func()
-                            else:
-                                self._update_callback_func()
-
-            except Exception as exc:
-                _LOGGER.warning(
-                    "Exception occured! %s %s", type(exc).__name__, type(exc)
-                )
-                retries += 1
-
-                wait_time = 1.25**retries
-                wait_time = wait_time if wait_time < 300 else 300
-                _LOGGER.warning("%s: Got excpetion: %s", self._name, exc)
-                _LOGGER.warning(
-                    "%s: Retrying websocket in %s seconds...", self._name, wait_time
-                )
-
-                await asyncio.sleep(wait_time)
+        # handle calling callbacks
+        for func in self._update_callback_funcs:
+            if inspect.iscoroutinefunction(func):
+                await func()
+            else:
+                func()
 
     async def _async_send_command(self, attribute_name: str, value: str):
-        """
-        Sends command to SmartRent websocket
-
-        ``attribute_name`` string of attribute to change
-        ``value`` value for that attribute to be changed to
-        """
-        payload = COMMAND_PAYLOAD.format(
-            attribute_name=attribute_name, value=value, device_id=self._device_id
-        )
-
-        await self._async_send_payload(payload)
-
-    async def _async_send_payload(self, payload: str):
-        """
-        Sends payload to SmartRent websocket
-
-        ``payload`` string of device attributes
-        """
-        _LOGGER.info("sending payload %s", payload)
-
-        async def sender(uri: str, payload: str):
-            async with websockets.connect(uri) as websocket:
-                joiner = JOINER_PAYLOAD.format(device_id=self._device_id)
-
-                # Join topic given device id
-                await websocket.send(joiner)
-                # Send payload
-                await websocket.send(payload)
-
-        try:
-            uri = SMARTRENT_WEBSOCKET_URI.format(self._client.get_current_token())
-
-            await sender(uri, payload)
-
-        except websockets.exceptions.InvalidStatusCode as exc:
-            _LOGGER.debug(
-                'Possible issue during send_payload: "%s" '
-                "Refreshing token and retrying",
-                exc,
-            )
-
-            # update token once
-            await self._client.async_refresh_token()
-
-            uri = SMARTRENT_WEBSOCKET_URI.format(self._client.get_current_token())
-
-            await sender(uri, payload)
+        await self._client._async_send_command(self, attribute_name, value)
