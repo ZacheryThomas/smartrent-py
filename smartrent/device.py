@@ -120,6 +120,3 @@ class Device:
                 await func()
             else:
                 func()
-
-    async def _async_send_command(self, attribute_name: str, value: str):
-        await self._client._async_send_command(self, attribute_name, value)

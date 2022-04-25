@@ -31,7 +31,7 @@ class BinarySwitch(Device):
         # Convert to lowercase just like SmartRent website does
         value = str(value).lower()
 
-        await self._async_send_command(attribute_name="on", value=value)
+        await self._client._async_send_command(self, attribute_name="on", value=value)
 
     def _fetch_state_helper(self, data: dict):
         """

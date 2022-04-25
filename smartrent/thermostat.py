@@ -63,7 +63,9 @@ class Thermostat(Device):
 
         ``value`` str or int representing temperature to set
         """
-        await self._async_send_command(attribute_name="heating_setpoint", value=value)
+        await self._client._async_send_command(
+            self, attribute_name="heating_setpoint", value=value
+        )
 
         self._heating_setpoint = int(value)
 
@@ -73,7 +75,9 @@ class Thermostat(Device):
 
         ``value`` str or int representing temperature to set
         """
-        await self._async_send_command(attribute_name="cooling_setpoint", value=value)
+        await self._client._async_send_command(
+            self, attribute_name="cooling_setpoint", value=value
+        )
 
         self._cooling_setpoint = int(value)
 
@@ -86,7 +90,7 @@ class Thermostat(Device):
         if mode not in ["aux_heat", "heat", "cool", "auto", "off"]:
             return
 
-        await self._async_send_command(attribute_name="mode", value=mode)
+        await self._client._async_send_command(self, attribute_name="mode", value=mode)
 
         self._mode = mode
 
@@ -99,7 +103,8 @@ class Thermostat(Device):
         if fan_mode not in ["on", "auto"]:
             return
 
-        await self._async_send_command(
+        await self._client._async_send_command(
+            self,
             attribute_name="fan_mode",
             value=fan_mode,
         )
