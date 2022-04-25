@@ -65,11 +65,7 @@ class Device:
             if device["id"] == self._device_id:
                 self._fetch_state_helper(device)
 
-                for func in self._update_callback_funcs:
-                    if inspect.iscoroutinefunction(func):
-                        await func()
-                    else:
-                        func()
+                await self._async_call_callbacks()
 
     def start_updater(self):
         """
@@ -110,11 +106,21 @@ class Device:
         """
         raise NotImplementedError
 
-    async def _update(self, event):
+    async def _update(self, event: Dict[str, any]):
+        """
+        Recieves event dict, calls ``_update_parser`` for each device and callbacks
+        """
+
         # handle updating of device attrs
         self._update_parser(event)
 
         # handle calling callbacks
+        await self._async_call_callbacks()
+
+    async def _async_call_callbacks(self):
+        """
+        Handles calling all callbacks
+        """
         for func in self._update_callback_funcs:
             if inspect.iscoroutinefunction(func):
                 await func()

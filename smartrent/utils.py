@@ -216,16 +216,12 @@ class Client:
                 self._updater_task = asyncio.create_task(self._async_update_state())
 
         if self._ws:
-            joiner = JOINER_PAYLOAD.format(device_id=device._device_id)
-            _LOGGER.info(
-                "%s: Joining topic for %s:%s ...",
-                device._name,
-                device._name,
-                device._device_id,
-            )
-            asyncio.create_task(self._ws.send(joiner))
+            asyncio.create_task(self._async_ws_joiner(self._ws, device))
 
     def _unsubscribe_device_to_updater(self, device: "Device"):
+        """
+        Unsubscribes device to recieve updates
+        """
         try:
             self._subscribed_devices.remove(device)
         except KeyError:
@@ -240,13 +236,24 @@ class Client:
                 self._updater_task.cancel()
                 self._ws = None
 
+    async def _async_ws_joiner(self, ws, device: "Device"):
+        """
+        Joins device to websocket
+        """
+        joiner = JOINER_PAYLOAD.format(device_id=device._device_id)
+        _LOGGER.info(
+            "Joining topic for %s:%s ...",
+            device._name,
+            device._device_id,
+        )
+        asyncio.create_task(ws.send(joiner))
+
     async def _async_update_state(self):
         """
         Connects to SmartRent websocket and listens for updates.
-        To be ran in the background. You can call ``start_updater`` and ``stop_updater``
-        to turn ``_async_update_state`` on or off.
+        To be ran in the background.
 
-        Calls ``_update_parser`` method for device when event is found
+        Calls ``_update`` method for each device when event is found
         """
 
         retries = 0
@@ -274,18 +281,16 @@ class Client:
 
                     # if we connect sucessfully at least one time, reset retries to 0
                     retries = 0
-
                     self._ws = websocket
 
-                    for device in self._subscribed_devices:
-                        joiner = JOINER_PAYLOAD.format(device_id=device._device_id)
-                        _LOGGER.info(
-                            "%s: Joining topic for %s:%s ...",
-                            device._name,
-                            device._name,
-                            device._device_id,
-                        )
-                        await websocket.send(joiner)
+                    _LOGGER.info("Joining devices to websocket conn...")
+                    await asyncio.gather(
+                        *[
+                            self._async_ws_joiner(websocket, device)
+                            for device in self._subscribed_devices
+                        ]
+                    )
+                    _LOGGER.info("Done Joining devices!")
 
                     while True:
                         resp = await websocket.recv()
@@ -300,16 +305,12 @@ class Client:
                         )
 
                         if event_type:
-                            event = (
-                                f"{event_type:<15} -> "
-                                f"{event_name:<15} -> "
-                                f"{event_last_read_state:<20}"
-                            )
-                            _LOGGER.info(str(event))
+                            event = f"{event_type:<15} -> {event_name:<15} -> {event_last_read_state:<20}"
+                            _LOGGER.info(event)
 
-                            for d in self._subscribed_devices:
-                                if d._device_id == int(device_id):
-                                    await d._update(formatted_resp)
+                            for device in self._subscribed_devices:
+                                if device._device_id == int(device_id):
+                                    await device._update(formatted_resp)
                         else:
                             _LOGGER.info(str(resp))
 
@@ -322,9 +323,8 @@ class Client:
                 # set websocket to None
                 self._ws = None
 
-                wait_time = 1.25 ** retries
+                wait_time = 1.25**retries
                 wait_time = wait_time if wait_time < 300 else 300
-                _LOGGER.warning("Got excpetion: %s", exc)
                 _LOGGER.warning("Retrying websocket in %s seconds...", wait_time)
 
                 await asyncio.sleep(wait_time)
