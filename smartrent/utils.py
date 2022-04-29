@@ -146,7 +146,7 @@ class Client:
 
     async def async_refresh_token(self) -> None:
         """
-        Refreshes API token from SmartRents
+        Refreshes API token from SmartRent
         """
         response = {}
         if self._refresh_token:
