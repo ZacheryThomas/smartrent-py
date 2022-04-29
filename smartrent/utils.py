@@ -305,7 +305,11 @@ class Client:
                         )
 
                         if event_type:
-                            event = f"{event_type:<15} -> {event_name:<15} -> {event_last_read_state:<20}"
+                            event = (
+                                f"{event_type:<15} -> "
+                                f"{event_name:<15} -> "
+                                f"{event_last_read_state:<20}"
+                            )
                             _LOGGER.info(event)
 
                             for device in self._subscribed_devices:
