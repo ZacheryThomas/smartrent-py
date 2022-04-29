@@ -2,7 +2,7 @@ import asyncio
 import logging
 import json
 import traceback
-from typing import List, Set, TYPE_CHECKING, Union
+from typing import List, Set, TYPE_CHECKING
 
 import aiohttp
 import websockets
@@ -236,9 +236,19 @@ class Client:
                 self._updater_task.cancel()
                 self._ws = None
 
+    async def _async_fetch_subscribed_devices_status(self):
+        """
+        Calls ``_async_fetch_state`` for all subscribed devices
+        """
+        _LOGGER.info("Fetching current status for all devices...")
+        await asyncio.gather(
+            *[device._async_fetch_state() for device in self._subscribed_devices]
+        )
+        _LOGGER.info("Done fetching data!")
+
     async def _async_ws_joiner(self, ws, device: "Device"):
         """
-        Joins device to websocket
+        Joins ``Device`` to websocket
         """
         joiner = JOINER_PAYLOAD.format(device_id=device._device_id)
         _LOGGER.info(
@@ -247,6 +257,14 @@ class Client:
             device._device_id,
         )
         asyncio.create_task(ws.send(joiner))
+
+    async def _async_ws_join_devices(self, ws, devices: List["Device"]):
+        """
+        Takes list of ``Device`` and joins them to websocket
+        """
+        _LOGGER.info("Joining devices to websocket conn...")
+        await asyncio.gather(*[self._async_ws_joiner(ws, device) for device in devices])
+        _LOGGER.info("Done Joining devices!")
 
     async def _async_update_state(self):
         """
@@ -265,14 +283,9 @@ class Client:
                 await self.async_refresh_token()
                 token = self.get_current_token()
 
-                _LOGGER.info("Fetching current status for all devices...")
-                await asyncio.gather(
-                    *[
-                        device._async_fetch_state()
-                        for device in self._subscribed_devices
-                    ]
-                )
-                _LOGGER.info("Done fetching data!")
+                # Update all devices with newest data from regular api
+                # we may have missed some stats if websocket was down
+                await self._async_fetch_subscribed_devices_status()
 
                 uri = SMARTRENT_WEBSOCKET_URI.format(token)
 
@@ -283,20 +296,16 @@ class Client:
                     retries = 0
                     self._ws = websocket
 
-                    _LOGGER.info("Joining devices to websocket conn...")
-                    await asyncio.gather(
-                        *[
-                            self._async_ws_joiner(websocket, device)
-                            for device in self._subscribed_devices
-                        ]
+                    # Join all devices to websocket connection
+                    await self._async_ws_join_devices(
+                        websocket, self._subscribed_devices
                     )
-                    _LOGGER.info("Done Joining devices!")
 
-                    while True:
-                        resp = await websocket.recv()
-
-                        formatted_resp = json.loads(f"{resp}")[4]
-                        device_id = json.loads(f"{resp}")[2].split(":")[-1]
+                    # iterator to recieve messages from websocket
+                    async for message in websocket:
+                        message_list = json.loads(f"{message}")
+                        formatted_resp = message_list[4]
+                        device_id = message_list[2].split(":")[-1]
 
                         event_type = formatted_resp.get("type", "")
                         event_name = formatted_resp.get("name", "")
@@ -316,7 +325,7 @@ class Client:
                                 if device._device_id == int(device_id):
                                     await device._update(formatted_resp)
                         else:
-                            _LOGGER.info(str(resp))
+                            _LOGGER.info(str(message))
 
             except Exception as exc:
                 _LOGGER.warning(
@@ -342,36 +351,14 @@ class Client:
         Sends command to SmartRent websocket
 
         ``attribute_name`` string of attribute to change
+
         ``value`` value for that attribute to be changed to
         """
         payload = COMMAND_PAYLOAD.format(
             attribute_name=attribute_name, value=value, device_id=device._device_id
         )
-
-        await self._async_send_payload(device._device_id, payload)
-
-    async def _async_send_payload(self, device_id: Union[str, int], payload: str):
-        """
-        Sends payload to SmartRent websocket
-
-        ``payload`` string of device attributes
-        """
-        _LOGGER.info("sending payload %s", payload)
-
-        async def sender(uri: str, payload: str):
-            async with websockets.connect(uri) as websocket:
-                joiner = JOINER_PAYLOAD.format(device_id=device_id)
-
-                # Join topic given device id
-                await websocket.send(joiner)
-                # Send payload
-                await websocket.send(payload)
-
         try:
-            uri = SMARTRENT_WEBSOCKET_URI.format(self.get_current_token())
-
-            await sender(uri, payload)
-
+            await self._async_send_payload(device, payload)
         except websockets.exceptions.InvalidStatusCode as exc:
             _LOGGER.debug(
                 'Possible issue during send_payload: "%s" '
@@ -382,6 +369,22 @@ class Client:
             # update token once
             await self.async_refresh_token()
 
-            uri = SMARTRENT_WEBSOCKET_URI.format(self.get_current_token())
+            await self._async_send_payload(device, payload)
 
-            await sender(uri, payload)
+    async def _async_send_payload(self, device: "Device", payload: str):
+        """
+        Sends payload to SmartRent websocket
+
+        ``device`` Device object
+
+        ``payload`` string of device attributes
+
+        Throws ``websockets.exceptions.InvalidStatusCode`` upon bad websocket event
+        """
+        _LOGGER.info("sending payload %s", payload)
+
+        uri = SMARTRENT_WEBSOCKET_URI.format(self.get_current_token())
+
+        async with websockets.connect(uri) as websocket:
+            await self._async_ws_joiner(websocket, device)
+            await websocket.send(payload)
