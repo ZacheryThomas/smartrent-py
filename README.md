@@ -45,7 +45,7 @@ asyncio.run(main())
 ```
 
 ### Getting Devices
-You can get lists of your devices from the api with the `get_locks` and `get_thermostats` functions. You can then interact with the devices with their getter and setter functions.
+You can get lists of your devices from the api with the `get_locks`, `get_thermostats`, `get_switches` and `get_leak_sensors` functions. You can then interact with the devices with their getter and setter functions.
 
 ```python
 import asyncio
