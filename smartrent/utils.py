@@ -144,10 +144,6 @@ class Client:
 
         return devices_list
 
-    def get_current_token(self) -> str:
-        """Returns current token"""
-        return self._token
-
     async def async_refresh_token(self) -> None:
         """
         Refreshes API token from SmartRents
@@ -281,7 +277,7 @@ class Client:
 
                 _LOGGER.info("Getting new token")
                 await self.async_refresh_token()
-                token = self.get_current_token()
+                token = self._token
 
                 # Update all devices with newest data from regular api
                 # we may have missed some stats if websocket was down
@@ -383,7 +379,7 @@ class Client:
         """
         _LOGGER.info("sending payload %s", payload)
 
-        uri = SMARTRENT_WEBSOCKET_URI.format(self.get_current_token())
+        uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
 
         async with websockets.connect(uri) as websocket:
             await self._async_ws_joiner(websocket, device)
