@@ -252,7 +252,7 @@ class Client:
             device._name,
             device._device_id,
         )
-        asyncio.create_task(ws.send(joiner))
+        await ws.send(joiner)
 
     async def _async_ws_join_devices(self, ws, devices: List["Device"]):
         """
