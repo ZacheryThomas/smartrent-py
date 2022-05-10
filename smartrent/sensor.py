@@ -14,7 +14,7 @@ class LeakSensor(Device):
 
     def __init__(self, device_id: int, client: Client):
         super().__init__(device_id, client)
-        self._leak = None
+        self._leak: Optional[bool] = None
 
     def get_leak(self) -> Optional[bool]:
         """

@@ -14,7 +14,7 @@ class BinarySwitch(Device):
 
     def __init__(self, device_id: int, client: Client):
         super().__init__(device_id, client)
-        self._on = None
+        self._on: Optional[bool] = None
 
     def get_on(self) -> Optional[bool]:
         """
@@ -29,9 +29,11 @@ class BinarySwitch(Device):
         self._on = value
 
         # Convert to lowercase just like SmartRent website does
-        value = str(value).lower()
+        str_value = str(value).lower()
 
-        await self._client._async_send_command(self, attribute_name="on", value=value)
+        await self._client._async_send_command(
+            self, attribute_name="on", value=str_value
+        )
 
     def _fetch_state_helper(self, data: dict):
         """

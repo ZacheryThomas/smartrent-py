@@ -2,7 +2,7 @@ import asyncio
 import logging
 import json
 import traceback
-from typing import List, Set, TYPE_CHECKING
+from typing import List, Set, Any, Optional, TYPE_CHECKING
 
 import aiohttp
 import websockets
@@ -71,7 +71,7 @@ class Client:
         self._token_exp_time = None
 
         self._subscribed_devices: Set["Device"] = set()
-        self._updater_task = None
+        self._updater_task: Optional[asyncio.Task[Any]] = None
         self._ws = None
 
     def __del__(self):
@@ -355,7 +355,7 @@ class Client:
         )
         try:
             await self._async_send_payload(device, payload)
-        except websockets.exceptions.InvalidStatusCode as exc:
+        except websockets.exceptions.InvalidStatusCode as exc:  # type: ignore
             _LOGGER.debug(
                 'Possible issue during send_payload: "%s" '
                 "Refreshing token and retrying",
@@ -381,6 +381,6 @@ class Client:
 
         uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
 
-        async with websockets.connect(uri) as websocket:
+        async with websockets.connect(uri) as websocket:  # type: ignore
             await self._async_ws_joiner(websocket, device)
             await websocket.send(payload)

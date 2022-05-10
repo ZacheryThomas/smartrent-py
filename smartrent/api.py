@@ -1,5 +1,5 @@
 import logging
-from typing import List, Union
+from typing import Optional, List, Union, TYPE_CHECKING
 
 import aiohttp
 
@@ -26,7 +26,9 @@ class API:
     def __init__(
         self, email: str, password: str, aiohttp_session: aiohttp.ClientSession = None
     ):
-        self._device_list = []
+        self._device_list: List[
+            Union[DoorLock, Thermostat, BinarySwitch, LeakSensor]
+        ] = []
         self._email = email
         self._password = password
         self._session = aiohttp_session

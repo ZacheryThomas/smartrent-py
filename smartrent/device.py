@@ -1,7 +1,8 @@
+from asyncio import Task
 import inspect
 import logging
+from typing import Union, List, Dict, Any, Optional
 
-from typing import Union, List, Dict
 from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
@@ -15,8 +16,8 @@ class Device:
     def __init__(self, device_id: Union[str, int], client: Client):
         self._device_id = int(device_id)
         self._name: str = ""
-        self._update_callback_funcs = []
-        self._updater_task = None
+        self._update_callback_funcs: List[function] = []
+        self._updater_task: Optional[Task] = None
 
         self._client: Client = client
 
@@ -24,17 +25,17 @@ class Device:
         self.stop_updater()
 
     @staticmethod
-    def _structure_attrs(attrs: List[Dict[str, any]]) -> Dict[str, any]:
+    def _structure_attrs(attrs: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Converts device json object to hirearchical list of attributes
 
         ``attrs``: List of device attributes
         """
-        structure = {}
+        structure: Dict[str, Any] = {}
 
         for attr in attrs:
-            name = attr.get("name")
-            state = attr.get("state")
+            name: str = str(attr.get("name"))
+            state: str = str(attr.get("state"))
 
             structure[name] = state
 
@@ -92,13 +93,12 @@ class Device:
         Removes callback from being fired when ``_async_update_state``
         or ``_async_fetch_state`` gets new information
         """
-
         try:
             self._update_callback_funcs.remove(func)
         except ValueError:
             pass
 
-    def _update_parser(self, event: Dict[str, any]) -> None:
+    def _update_parser(self, event: Dict[str, Any]) -> None:
         """
         Called by ``_async_update_state``
 
@@ -106,11 +106,10 @@ class Device:
         """
         raise NotImplementedError
 
-    async def _update(self, event: Dict[str, any]):
+    async def _update(self, event: Dict[str, Any]):
         """
         Recieves event dict, calls ``_update_parser`` for each device and callbacks
         """
-
         # handle updating of device attrs
         self._update_parser(event)
 

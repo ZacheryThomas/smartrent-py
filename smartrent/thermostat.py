@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 import logging
 
 from .device import Device
@@ -14,12 +14,12 @@ class Thermostat(Device):
 
     def __init__(self, device_id: int, client: Client):
         super().__init__(device_id, client)
-        self._mode = None
-        self._fan_mode = None
-        self._cooling_setpoint = None
-        self._heating_setpoint = None
-        self._current_humidity = None
-        self._current_temp = None
+        self._mode: Optional[str] = None
+        self._fan_mode: Optional[str] = None
+        self._cooling_setpoint: Optional[int] = None
+        self._heating_setpoint: Optional[int] = None
+        self._current_humidity: Optional[int] = None
+        self._current_temp: Optional[int] = None
 
     def get_mode(self) -> Optional[str]:
         """
@@ -64,7 +64,7 @@ class Thermostat(Device):
         ``value`` str or int representing temperature to set
         """
         await self._client._async_send_command(
-            self, attribute_name="heating_setpoint", value=value
+            self, attribute_name="heating_setpoint", value=str(value)
         )
 
         self._heating_setpoint = int(value)
@@ -76,7 +76,7 @@ class Thermostat(Device):
         ``value`` str or int representing temperature to set
         """
         await self._client._async_send_command(
-            self, attribute_name="cooling_setpoint", value=value
+            self, attribute_name="cooling_setpoint", value=str(value)
         )
 
         self._cooling_setpoint = int(value)
@@ -87,8 +87,10 @@ class Thermostat(Device):
 
         ``mode`` str. One of ``['aux_heat', 'heat', 'cool', 'auto', 'off']``
         """
-        if mode not in ["aux_heat", "heat", "cool", "auto", "off"]:
-            return
+        accepted_modes = ["aux_heat", "heat", "cool", "auto", "off"]
+
+        if mode not in accepted_modes:
+            raise ValueError(f"{mode} not in {accepted_modes}")
 
         await self._client._async_send_command(self, attribute_name="mode", value=mode)
 
@@ -100,8 +102,10 @@ class Thermostat(Device):
 
         ``value`` str. One of ``['auto', 'on']``
         """
-        if fan_mode not in ["on", "auto"]:
-            return
+        accepted_fan_modes = ["on", "auto"]
+
+        if fan_mode not in accepted_fan_modes:
+            raise ValueError(f"{fan_mode} not in {accepted_fan_modes}")
 
         await self._client._async_send_command(
             self,
@@ -142,20 +146,22 @@ class Thermostat(Device):
         ``event`` dict passed in from ``_async_update_state``
         """
         _LOGGER.info("Updating Thermostat")
+        last_read_state = str(event.get("last_read_state"))
+
         if event.get("name") == "current_humidity":
-            self._current_humidity = int(event.get("last_read_state"))
+            self._current_humidity = int(last_read_state)
 
         if event.get("name") == "current_temp":
-            self._current_temp = int(event.get("last_read_state"))
+            self._current_temp = int(last_read_state)
 
         if event.get("name") == "heating_setpoint":
-            self._heating_setpoint = int(event.get("last_read_state"))
+            self._heating_setpoint = int(last_read_state)
 
         if event.get("name") == "cooling_setpoint":
-            self._cooling_setpoint = int(event.get("last_read_state"))
+            self._cooling_setpoint = int(last_read_state)
 
         if event.get("name") == "mode":
-            self._mode = event.get("last_read_state")
+            self._mode = last_read_state
 
         if event.get("name") == "fan_mode":
-            self._fan_mode = event.get("last_read_state")
+            self._fan_mode = last_read_state

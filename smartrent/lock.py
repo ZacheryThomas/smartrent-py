@@ -14,8 +14,8 @@ class DoorLock(Device):
 
     def __init__(self, device_id: int, client: Client):
         super().__init__(device_id, client)
-        self._locked = None
-        self._notification = None
+        self._locked: Optional[bool] = None
+        self._notification: Optional[str] = None
 
     def get_notification(self) -> Optional[str]:
         """
@@ -33,14 +33,13 @@ class DoorLock(Device):
         """
         Sets state for lock
         """
-
         self._locked = value
 
         # Convert to lowercase just like SmartRent website does
-        value = str(value).lower()
+        str_value = str(value).lower()
 
         await self._client._async_send_command(
-            self, attribute_name="locked", value=value
+            self, attribute_name="locked", value=str_value
         )
 
     def _fetch_state_helper(self, data: dict):
