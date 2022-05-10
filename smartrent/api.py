@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, List, Union, TYPE_CHECKING
+from typing import List, Union
 
 import aiohttp
 
