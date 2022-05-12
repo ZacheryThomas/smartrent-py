@@ -1,8 +1,8 @@
 import asyncio
-import logging
 import json
+import logging
 import traceback
-from typing import List, Set, Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Optional, Set
 
 import aiohttp
 import websockets

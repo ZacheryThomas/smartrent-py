@@ -1,8 +1,8 @@
-from asyncio import Task
 import inspect
 import logging
-from typing import Union, List, Dict, Any, Optional
+from asyncio import Task
 from collections.abc import Callable
+from typing import Any, Dict, List, Optional, Union
 
 from .utils import Client
 

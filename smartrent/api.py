@@ -4,9 +4,9 @@ from typing import List, Union
 import aiohttp
 
 from .lock import DoorLock
-from .thermostat import Thermostat
-from .switch import BinarySwitch
 from .sensor import LeakSensor
+from .switch import BinarySwitch
+from .thermostat import Thermostat
 from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)

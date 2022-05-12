@@ -1,5 +1,5 @@
-from typing import Optional
 import logging
+from typing import Optional
 
 from .device import Device
 from .utils import Client

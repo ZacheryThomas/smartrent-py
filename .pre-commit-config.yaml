@@ -21,4 +21,10 @@ repos:
     hooks:
     -   id: flake8
 
+  - repo: https://github.com/pycqa/isort
+    rev: 5.6.4
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "--filter-files"]
+
 exclude: docs
