@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+SMARTRENT_FETCH_INTERVAL_SECONDS = 600
+
 SMARTRENT_BASE_URI = "https://control.smartrent.com/api/v2/"
 SMARTRENT_SESSIONS_URI = SMARTRENT_BASE_URI + "sessions"
 SMARTRENT_TOKENS_URI = SMARTRENT_BASE_URI + "tokens"
@@ -263,6 +265,44 @@ class Client:
         _LOGGER.info("Done Joining devices!")
 
     async def _async_update_state(self):
+        """
+        Responsible for handling automatic updating of device info
+        """
+        fetch = asyncio.create_task(self._async_update_state_via_fetch())
+        ws = asyncio.create_task(self._async_update_state_via_ws())
+
+        await asyncio.gather(fetch, ws)
+
+    async def _async_update_state_via_fetch(self):
+        """
+        Connects to SmartRent rest api every
+        ``SMARTRENT_FETCH_INTERVAL_SECONDS`` seconds for updates.
+        To be ran in the background.
+        Used to get ``online`` and ``battery`` information
+        since those are not passed in through websockets events.
+
+        Calls ``_async_fetch_state`` method for each subscribed device
+        """
+        while True:
+            try:
+                for device in self._subscribed_devices:
+                    await device._async_fetch_state()
+                await asyncio.sleep(SMARTRENT_FETCH_INTERVAL_SECONDS)
+
+            except Exception as exc:
+                _LOGGER.warning(
+                    "Exception occured! %s %s", type(exc).__name__, type(exc)
+                )
+                _LOGGER.warning(traceback.format_exc())
+
+                _LOGGER.warning(
+                    "Retrying fetches in %s seconds...",
+                    SMARTRENT_FETCH_INTERVAL_SECONDS,
+                )
+
+                await asyncio.sleep(SMARTRENT_FETCH_INTERVAL_SECONDS)
+
+    async def _async_update_state_via_ws(self):
         """
         Connects to SmartRent websocket and listens for updates.
         To be ran in the background.

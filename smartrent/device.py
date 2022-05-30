@@ -1,7 +1,7 @@
 import inspect
 import logging
 from collections.abc import Callable
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from .utils import Client
 
@@ -16,12 +16,33 @@ class Device:
     def __init__(self, device_id: Union[str, int], client: Client):
         self._device_id = int(device_id)
         self._name: str = ""
+        self._online: Optional[bool] = None
+        self._battery_powered: Optional[bool] = None
+        self._battery_level: Optional[int] = None
         self._update_callback_funcs: List[Callable[[None], None]] = []
 
         self._client: Client = client
 
     def __del__(self):
         self.stop_updater()
+
+    def get_online(self) -> Optional[bool]:
+        """
+        Gets if device is online or not
+        """
+        return self._online
+
+    def get_battery_powered(self) -> Optional[bool]:
+        """
+        Gets if devices is battery powered
+        """
+        return self._battery_powered
+
+    def get_battery_level(self) -> Optional[int]:
+        """
+        Gets devices battery level (assuming device is battery powered)
+        """
+        return self._battery_level
 
     @staticmethod
     def _structure_attrs(attrs: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -53,7 +74,8 @@ class Device:
         """
         Fetches device information from SmartRent api
 
-        Calls ``_fetch_state_helper`` so device can parse out info and update its state.
+        Calls ``_fetch_state_helper`` so device can parse out
+        info and update it's state.
 
         Calls function passed into ``set_update_callback`` if it exists.
         """
@@ -63,9 +85,19 @@ class Device:
         # Find device id that belongs to me then call _fetch_state_helper
         for device in data:
             if device["id"] == self._device_id:
+                device_at_start = dict(vars(self))
+
+                self._battery_level = device.get("battery_level")
+                self._battery_powered = device.get("battery_powered")
+                self._online = device.get("online")
+
                 self._fetch_state_helper(device)
 
-                await self._async_call_callbacks()
+                device_at_end = dict(vars(self))
+
+                # If device attrs updated, call callbacks
+                if not device_at_start == device_at_end:
+                    await self._async_call_callbacks()
 
     def start_updater(self):
         """
