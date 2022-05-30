@@ -1,8 +1,7 @@
 import inspect
 import logging
-from asyncio import Task
 from collections.abc import Callable
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 from .utils import Client
 
@@ -18,7 +17,6 @@ class Device:
         self._device_id = int(device_id)
         self._name: str = ""
         self._update_callback_funcs: List[Callable[[None], None]] = []
-        self._updater_task: Optional[Task] = None
 
         self._client: Client = client
 
