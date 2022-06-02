@@ -103,7 +103,7 @@ class Client:
 
     async def async_get_devices_data(self) -> List[dict]:
         """
-        Gets list of device dictonaries from SmartRent's api.
+        Gets list of device dictionaries from SmartRent's api.
         Also handles retry if token is bad
         """
         if not self._token:
@@ -121,7 +121,7 @@ class Client:
 
     async def _async_get_devices_data(self) -> List[dict]:
         """
-        Gets list of device dictonaries from SmartRent's api
+        Gets list of device dictionaries from SmartRent's api
         """
 
         hubs_resp = await self._aiohttp_session.get(

@@ -110,7 +110,7 @@ class Device:
 
     def set_update_callback(self, func) -> None:
         """
-        Allows callback to be fired when ``_async_update_state``
+        Allows callback to be fired when ``Client._async_update_state``
         or ``_async_fetch_state`` gets new information
         """
 
@@ -118,7 +118,7 @@ class Device:
 
     def unset_update_callback(self, func) -> None:
         """
-        Removes callback from being fired when ``_async_update_state``
+        Removes callback from being fired when ``Client._async_update_state``
         or ``_async_fetch_state`` gets new information
         """
         try:
@@ -128,7 +128,7 @@ class Device:
 
     def _update_parser(self, event: Dict[str, Any]) -> None:
         """
-        Called by ``_async_update_state``
+        Called by ``Client._async_update_state``
 
         Converts event dict to device attr info
         """

@@ -141,9 +141,9 @@ class Thermostat(Device):
 
     def _update_parser(self, event: dict) -> None:
         """
-        Called when ``_async_update_state`` returns info
+        Called when ``Client._async_update_state`` returns info
 
-        ``event`` dict passed in from ``_async_update_state``
+        ``event`` dict passed in from ``Client._async_update_state``
         """
         _LOGGER.info("Updating Thermostat")
         last_read_state = str(event.get("last_read_state"))
