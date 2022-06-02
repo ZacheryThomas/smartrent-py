@@ -1,5 +1,5 @@
 import logging
-from typing import List, Union
+from typing import List, Optional, Union
 
 import aiohttp
 
@@ -84,25 +84,33 @@ class API:
         """
         Gets list of DoorLocks
         """
-        return [x for x in self._device_list if isinstance(x, DoorLock)]
+        return self._list_maker(DoorLock)  # type: ignore
 
     def get_thermostats(self) -> List[Thermostat]:
         """
         Gets list of Thermostats
         """
-        return [x for x in self._device_list if isinstance(x, Thermostat)]
+        return self._list_maker(Thermostat)  # type: ignore
 
     def get_switches(self) -> List[BinarySwitch]:
         """
         Gets list of BinarySwitches
         """
-        return [x for x in self._device_list if isinstance(x, BinarySwitch)]
+        return self._list_maker(BinarySwitch)  # type: ignore
 
     def get_leak_sensors(self) -> List[LeakSensor]:
         """
         Gets list of LeakSensors
         """
-        return [x for x in self._device_list if isinstance(x, LeakSensor)]
+        return self._list_maker(LeakSensor)  # type: ignore
+
+    def _list_maker(
+        self, to_find: Union[LeakSensor, BinarySwitch, Thermostat, DoorLock]
+    ) -> List[Optional[Union[LeakSensor, BinarySwitch, Thermostat, DoorLock]]]:
+        """
+        Gets list of X type of item from ``device_list``
+        """
+        return [x for x in self._device_list if isinstance(x, to_find)]  # type: ignore
 
 
 async def async_login(
