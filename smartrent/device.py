@@ -80,24 +80,21 @@ class Device:
         Calls function passed into ``set_update_callback`` if it exists.
         """
         _LOGGER.info("%s: Fetching data from device endpoint...", self._name)
-        data = await self._client.async_get_devices_data()
+        device_data = await self._client.async_get_device_data(self._device_id)
 
-        # Find device id that belongs to me then call _fetch_state_helper
-        for device in data:
-            if device["id"] == self._device_id:
-                device_at_start = dict(vars(self))
+        device_at_start = dict(vars(self))
 
-                self._battery_level = device.get("battery_level")
-                self._battery_powered = device.get("battery_powered")
-                self._online = device.get("online")
+        self._battery_level = device_data.get("battery_level")
+        self._battery_powered = device_data.get("battery_powered")
+        self._online = device_data.get("online")
 
-                self._fetch_state_helper(device)
+        self._fetch_state_helper(device_data)
 
-                device_at_end = dict(vars(self))
+        device_at_end = dict(vars(self))
 
-                # If device attrs updated, call callbacks
-                if not device_at_start == device_at_end:
-                    await self._async_call_callbacks()
+        # If device attrs updated, call callbacks
+        if not device_at_start == device_at_end:
+            await self._async_call_callbacks()
 
     def start_updater(self):
         """

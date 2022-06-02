@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import traceback
-from typing import TYPE_CHECKING, Any, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 import aiohttp
 import websockets
@@ -19,6 +19,7 @@ SMARTRENT_SESSIONS_URI = SMARTRENT_BASE_URI + "sessions"
 SMARTRENT_TOKENS_URI = SMARTRENT_BASE_URI + "tokens"
 SMARTRENT_HUBS_URI = SMARTRENT_BASE_URI + "hubs"
 SMARTRENT_HUBS_ID_URI = SMARTRENT_BASE_URI + "hubs/{}/devices"
+SMARTRENT_DEVICE_URI = SMARTRENT_BASE_URI + "devices/{}"
 
 SMARTRENT_WEBSOCKET_URI = (
     "wss://control.smartrent.com/socket/websocket?token={}&vsn=2.0.0"
@@ -145,6 +146,41 @@ class Client:
                 devices_list.append(device)
 
         return devices_list
+
+    async def async_get_device_data(self, id: int) -> Dict[str, Any]:
+        """
+        Gets device dictionary from SmartRent's api.
+        Also handles retry if token is bad
+        """
+        if not self._token:
+            await self.async_refresh_token()
+
+        try:
+            res = await self._async_get_device_data(id)
+        except InvalidAuthError:
+            _LOGGER.warning("InvalidAuth detected. Trying again with updated token...")
+            await self.async_refresh_token()
+
+            res = await self._async_get_device_data(id)
+
+        return res
+
+    async def _async_get_device_data(self, id: int) -> Dict[str, Any]:
+        """
+        Gets list of device dictionary from SmartRent's api
+        """
+
+        device_resp = await self._aiohttp_session.get(
+            SMARTRENT_DEVICE_URI.format(id),
+            headers={"authorization": f"Bearer {self._token}"},
+        )
+        device_dict = await device_resp.json()
+
+        if not device_resp.ok:
+            if device_dict.get("errors", [{}])[0].get("code") == "unauthorized":
+                raise InvalidAuthError(device_dict.get("errors"))
+
+        return device_dict
 
     async def async_refresh_token(self) -> None:
         """
