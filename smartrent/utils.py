@@ -321,8 +321,7 @@ class Client:
         """
         while True:
             try:
-                for device in self._subscribed_devices:
-                    await device._async_fetch_state()
+                await self._async_fetch_subscribed_devices_status()
                 await asyncio.sleep(SMARTRENT_FETCH_INTERVAL_SECONDS)
 
             except Exception as exc:
@@ -355,9 +354,11 @@ class Client:
                 await self.async_refresh_token()
                 token = self._token
 
+                # If coming off of a retry:
                 # Update all devices with newest data from regular api
                 # we may have missed some stats if websocket was down
-                await self._async_fetch_subscribed_devices_status()
+                if retries:
+                    await self._async_fetch_subscribed_devices_status()
 
                 uri = SMARTRENT_WEBSOCKET_URI.format(token)
 
