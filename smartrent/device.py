@@ -26,6 +26,12 @@ class Device:
     def __del__(self):
         self.stop_updater()
 
+    def get_name(self) -> Optional[str]:
+        """
+        Gets the name of the device, if known
+        """
+        return self._name
+
     def get_online(self) -> Optional[bool]:
         """
         Gets if device is online or not
