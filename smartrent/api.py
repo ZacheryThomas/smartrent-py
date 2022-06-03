@@ -67,7 +67,7 @@ class API:
 
             if device_object:
                 # pass in intial device config
-                device_object._fetch_state_helper(device)
+                await device_object._async_fetch_state()
 
                 # add device to device_list
                 self._device_list.append(device_object)
