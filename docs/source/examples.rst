@@ -52,7 +52,7 @@ This code gets the first :class:`smartrent.lock.DoorLock` we find through the ap
 
         await first_lock.async_set_locked(False)
 
-        asyncio.sleep(10)
+        await asyncio.sleep(10)
 
         await first_lock.async_set_locked(True)
 
