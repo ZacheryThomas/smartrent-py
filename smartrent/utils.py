@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import math
+import time
 import traceback
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
@@ -76,6 +78,8 @@ class Client:
         self._subscribed_devices: Set["Device"] = set()
         self._updater_task: Optional[asyncio.Task[Any]] = None
         self._ws = None
+
+        self._refresh_token_lock: Optional[asyncio.Lock] = None
 
     def __del__(self):
         """
@@ -187,32 +191,50 @@ class Client:
         Refreshes API token from SmartRent
         """
         response = {}
-        if self._refresh_token:
-            response = await self._async_refresh_tokens_via_refresh_token()
 
-            # if refresh token has an error, default to email
-            if response.get("errors"):
-                codes = [err["code"] for err in response.get("errors")]
-                if "unauthorized" in codes:
-                    _LOGGER.warning(
-                        "Refreshing with refresh_token failed with %s. "
-                        "Trying with email and pass instead.",
-                        response["errors"],
-                    )
-                    response = await self._async_refresh_tokens_via_email()
-        else:
-            response = await self._async_refresh_tokens_via_email()
+        if not self._refresh_token_lock:
+            self._refresh_token_lock = asyncio.Lock()
 
-        if not response.get("errors"):
-            self._token = response["access_token"]
-            self._refresh_token = response["refresh_token"]
-            self._token_exp_time = response["expires"]
-            _LOGGER.info("Tokens refreshed!")
-        else:
-            raise InvalidAuthError(
-                "Token not retrieved! "
-                f'Loggin probably not successful: {response["errors"]}'
-            )
+        if self._refresh_token_lock.locked():
+            # Wait to have lock, then release it
+            # since other thread already updated the token
+            await self._refresh_token_lock.acquire()
+            self._refresh_token_lock.release()
+            return
+
+        # Check to make sure token is expired before trying to refresh
+        if self._token_exp_time:
+            if self._token_exp_time > (math.ceil(time.time()) + 60):
+                _LOGGER.info("Token not expired. Not refreshing.")
+                return
+
+        async with self._refresh_token_lock:
+            if self._refresh_token:
+                response = await self._async_refresh_tokens_via_refresh_token()
+
+                # if refresh token has an error, default to email
+                if response.get("errors"):
+                    codes = [err["code"] for err in response.get("errors")]
+                    if "unauthorized" in codes:
+                        _LOGGER.warning(
+                            "Refreshing with refresh_token failed with %s. "
+                            "Trying with email and pass instead.",
+                            response["errors"],
+                        )
+                        response = await self._async_refresh_tokens_via_email()
+            else:
+                response = await self._async_refresh_tokens_via_email()
+
+            if not response.get("errors"):
+                self._token = response["access_token"]
+                self._refresh_token = response["refresh_token"]
+                self._token_exp_time = response["expires"]
+                _LOGGER.info("Tokens refreshed!")
+            else:
+                raise InvalidAuthError(
+                    "Token not retrieved! "
+                    f'Loggin probably not successful: {response["errors"]}'
+                )
 
     async def _async_refresh_tokens_via_email(self) -> dict:
         """
