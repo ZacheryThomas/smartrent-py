@@ -66,5 +66,5 @@ class DoorLock(Device):
         if event.get("name") == "locked":
             self._locked = bool(event["last_read_state"] == "true")
 
-        if event.get("name") == "notifications":
+        elif event.get("name") == "notifications":
             self._notification = event.get("last_read_state")

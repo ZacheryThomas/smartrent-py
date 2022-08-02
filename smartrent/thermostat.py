@@ -151,17 +151,17 @@ class Thermostat(Device):
         if event.get("name") == "current_humidity":
             self._current_humidity = int(last_read_state)
 
-        if event.get("name") == "current_temp":
+        elif event.get("name") == "current_temp":
             self._current_temp = int(last_read_state)
 
-        if event.get("name") == "heating_setpoint":
+        elif event.get("name") == "heating_setpoint":
             self._heating_setpoint = int(last_read_state)
 
-        if event.get("name") == "cooling_setpoint":
+        elif event.get("name") == "cooling_setpoint":
             self._cooling_setpoint = int(last_read_state)
 
-        if event.get("name") == "mode":
+        elif event.get("name") == "mode":
             self._mode = last_read_state
 
-        if event.get("name") == "fan_mode":
+        elif event.get("name") == "fan_mode":
             self._fan_mode = last_read_state
