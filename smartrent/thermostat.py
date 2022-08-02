@@ -149,7 +149,11 @@ class Thermostat(Device):
         last_read_state = str(event.get("last_read_state"))
 
         if event.get("name") == "current_humidity":
-            self._current_humidity = int(last_read_state)
+            self._current_humidity = (
+                int(last_read_state)
+                if int(last_read_state) > 0
+                else self._current_humidity
+            )
 
         elif event.get("name") == "current_temp":
             self._current_temp = int(last_read_state)
