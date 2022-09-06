@@ -7,7 +7,7 @@
 [![Documentation Status][docs-badge]](https://smartrentpy.readthedocs.io/en/latest/?badge=latest)
 [![Code style: black][black-badge]](https://github.com/psf/black)
 
-Unofficial api for SmartRent devices
+Api for SmartRent devices
 
 Uses websockets for communication and supports async functions
 
