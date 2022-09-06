@@ -7,7 +7,7 @@
 [![Documentation Status][docs-badge]](https://smartrentpy.readthedocs.io/en/latest/?badge=latest)
 [![Code style: black][black-badge]](https://github.com/psf/black)
 
-Api for SmartRent devices
+`smartrent.py` is a simple library for SmartRent devices
 
 Uses websockets for communication and supports async functions
 
