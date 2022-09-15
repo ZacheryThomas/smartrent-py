@@ -1,15 +1,20 @@
 import logging
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import aiohttp
 
 from .lock import DoorLock
 from .sensor import LeakSensor
-from .switch import BinarySwitch
+from .switch import BinarySwitch, MultilevelSwitch
 from .thermostat import Thermostat
 from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    ALL_DEVICE_TYPES = Union[
+        DoorLock, Thermostat, BinarySwitch, MultilevelSwitch, LeakSensor
+    ]
 
 
 class API:
@@ -26,9 +31,7 @@ class API:
     def __init__(
         self, email: str, password: str, aiohttp_session: aiohttp.ClientSession = None
     ):
-        self._device_list: List[
-            Union[DoorLock, Thermostat, BinarySwitch, LeakSensor]
-        ] = []
+        self._device_list: List["ALL_DEVICE_TYPES"] = []
         self._email = email
         self._password = password
         self._session = aiohttp_session
@@ -48,7 +51,7 @@ class API:
             device_id = device.get("id")
             device_type = device.get("type")
 
-            device_object: Union[Thermostat, DoorLock, BinarySwitch, LeakSensor] = None
+            device_object: Optional["ALL_DEVICE_TYPES"] = None
 
             if device_type == "thermostat":
                 device_object = Thermostat(device_id, self.client)
@@ -58,6 +61,9 @@ class API:
 
             elif device_type == "switch_binary":
                 device_object = BinarySwitch(device_id, self.client)
+
+            elif device_type == "switch_multilevel":
+                device_object = MultilevelSwitch(device_id, self.client)
 
             elif device_type == "sensor_notification":
                 attr_names = [attr.get("name") for attr in device.get("attributes")]
@@ -74,7 +80,7 @@ class API:
 
     def get_device_list(
         self,
-    ) -> List[Union[DoorLock, Thermostat, BinarySwitch, LeakSensor]]:
+    ) -> List["ALL_DEVICE_TYPES"]:
         """
         Gets list of all devices found
         """
@@ -94,9 +100,26 @@ class API:
 
     def get_switches(self) -> List[BinarySwitch]:
         """
+        Gets list of BinarySwitches,
+        Deprecating soon in favor of ``get_binary_switches``
+        """
+        _LOGGER.warning(
+            'Function "get_switches" will be removed in a future update!'
+            ' Please use "get_binary_switches" or "get_multilevel_switches".'
+        )
+        return self._list_maker(BinarySwitch)  # type: ignore
+
+    def get_binary_switches(self) -> List[BinarySwitch]:
+        """
         Gets list of BinarySwitches
         """
         return self._list_maker(BinarySwitch)  # type: ignore
+
+    def get_multilevel_switches(self) -> List[MultilevelSwitch]:
+        """
+        Gets list of MultilevelSwitches
+        """
+        return self._list_maker(MultilevelSwitch)  # type: ignore
 
     def get_leak_sensors(self) -> List[LeakSensor]:
         """
@@ -105,8 +128,9 @@ class API:
         return self._list_maker(LeakSensor)  # type: ignore
 
     def _list_maker(
-        self, to_find: Union[LeakSensor, BinarySwitch, Thermostat, DoorLock]
-    ) -> List[Optional[Union[LeakSensor, BinarySwitch, Thermostat, DoorLock]]]:
+        self,
+        to_find: "ALL_DEVICE_TYPES",
+    ) -> List[Optional["ALL_DEVICE_TYPES"]]:
         """
         Gets list of X type of item from ``device_list``
         """
