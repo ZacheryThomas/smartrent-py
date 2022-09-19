@@ -78,14 +78,11 @@ class MultilevelSwitch(Device):
         """
         Sets state for multilevel switch
         """
-        self._level = value
-
-        # Convert to lowercase just like SmartRent website does
-        str_value = str(value).lower()
-
         await self._client._async_send_command(
-            self, attribute_name="level", value=str_value
+            self, attribute_name="level", value=str(int(value))
         )
+
+        self._level = int(value)
 
     def _fetch_state_helper(self, data: dict):
         """
