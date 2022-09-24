@@ -66,6 +66,14 @@ Submodules
    :undoc-members:
    :show-inheritance:
 
+``MultilevelSwitch`` class
+----------------
+
+.. autoclass:: smartrent.switch.MultilevelSwitch
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ``Client`` class
 ----------------
 
