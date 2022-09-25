@@ -20,6 +20,7 @@ This client supports:
 * 🌡 Thermostats
 * 💧 Leak Sensors
 * 💡 Binary Switches
+* 🎚 Multilevel (Dimmer) Switches
 
 
 ## Usage
