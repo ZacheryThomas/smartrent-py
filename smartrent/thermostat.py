@@ -135,9 +135,10 @@ class Thermostat(Device):
         self._heating_setpoint = float_to_int(attrs.get("heating_setpoint"))
 
         temp_humidity = float_to_int(attrs.get("current_humidity"))
-        self._current_humidity = (
-            int(temp_humidity) if int(temp_humidity) > 0 else self._current_humidity
-        )
+        if temp_humidity:
+            self._current_humidity = (
+                temp_humidity if temp_humidity > 0 else self._current_humidity
+            )
 
         self._mode = attrs["mode"]
         self._fan_mode = attrs.get("fan_mode")
