@@ -48,7 +48,7 @@ class InvalidAuthError(SmartRentError):
 
 class Client:
     """
-    Represents Client for SmartRent http api.
+    Represents Client for SmartRent http and websocket api.
     Usually shared between multiple devices for best performance.
 
     ``email`` is the email address for your SmartRent account
