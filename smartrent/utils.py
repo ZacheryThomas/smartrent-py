@@ -115,13 +115,13 @@ class Client:
         Also handles retry if token is bad
         """
         if not self._token:
-            await self.async_refresh_token()
+            await self._async_refresh_token()
 
         try:
             res = await self._async_get_devices_data()
         except InvalidAuthError:
             _LOGGER.warning("InvalidAuth detected. Trying again with updated token...")
-            await self.async_refresh_token()
+            await self._async_refresh_token()
 
             res = await self._async_get_devices_data()
 
@@ -161,13 +161,13 @@ class Client:
         Also handles retry if token is bad
         """
         if not self._token:
-            await self.async_refresh_token()
+            await self._async_refresh_token()
 
         try:
             res = await self._async_get_device_data(id)
         except InvalidAuthError:
             _LOGGER.warning("InvalidAuth detected. Trying again with updated token...")
-            await self.async_refresh_token()
+            await self._async_refresh_token()
 
             res = await self._async_get_device_data(id)
 
@@ -190,7 +190,7 @@ class Client:
 
         return device_dict
 
-    async def async_refresh_token(self) -> None:
+    async def _async_refresh_token(self) -> None:
         """
         Refreshes API token from SmartRent
         """
@@ -395,7 +395,7 @@ class Client:
                 self._ws = None
 
                 _LOGGER.info("Getting new token")
-                await self.async_refresh_token()
+                await self._async_refresh_token()
                 token = self._token
 
                 # If coming off of a retry:
@@ -484,7 +484,7 @@ class Client:
             )
 
             # update token once
-            await self.async_refresh_token()
+            await self._async_refresh_token()
 
             await self._async_send_payload(device, payload)
 

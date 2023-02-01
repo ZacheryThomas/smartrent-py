@@ -45,7 +45,6 @@ class API:
         Fetches list of devices by calling SmartRent api
         """
         _LOGGER.info("Fetching devices via API...")
-        await self.client.async_refresh_token()
         data = await self.client.async_get_devices_data()
         _LOGGER.info("Got devices!")
 
