@@ -159,9 +159,6 @@ MultiLvlSensor      current_humidity    53
 
 Once you get a good amount of info, open up an issue describing that you wish to add support for a new device and paste all of the output from `device_helper.py`. Feel free to hide your `Device ID`s if you wish.
 
-# TODOs
-
-* Add support for Two Factor Auth
 
 [pypi-version-badge]: https://img.shields.io/pypi/v/smartrent-py.svg?logo=pypi&logoColor=FFE873&style=for-the-badge
 [supported-versions-badge]: https://img.shields.io/pypi/pyversions/smartrent-py.svg?logo=python&logoColor=FFE873&style=for-the-badge

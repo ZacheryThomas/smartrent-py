@@ -26,17 +26,19 @@ class API:
     ``password`` you know what it is
 
     ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
+
+    ``tfa_token`` (optional) tfa token to pass in for login
     """
 
     def __init__(
-        self, email: str, password: str, aiohttp_session: aiohttp.ClientSession = None
+        self,
+        email: str,
+        password: str,
+        aiohttp_session: aiohttp.ClientSession = None,
+        tfa_token=None,
     ):
         self._device_list: List["ALL_DEVICE_TYPES"] = []
-        self._email = email
-        self._password = password
-        self._session = aiohttp_session
-
-        self.client: Client = Client(email, password, aiohttp_session)
+        self.client: Client = Client(email, password, aiohttp_session, tfa_token)
 
     async def async_fetch_devices(self):
         """
@@ -138,7 +140,10 @@ class API:
 
 
 async def async_login(
-    email: str, password: str, aiohttp_session: aiohttp.ClientSession = None
+    email: str,
+    password: str,
+    aiohttp_session: aiohttp.ClientSession = None,
+    tfa_token: str = None,
 ) -> API:
     """
     Logs into SmartRent and retruns an ``API`` object.
@@ -150,9 +155,11 @@ async def async_login(
     ``password`` you know what it is
 
     ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
+
+    ``tfa_token`` (optional) tfa token to pass in for login
     """
 
-    smart_rent_api = API(email, password, aiohttp_session)
+    smart_rent_api = API(email, password, aiohttp_session, tfa_token)
     await smart_rent_api.async_fetch_devices()
 
     return smart_rent_api

@@ -56,6 +56,8 @@ class Client:
     ``password`` you know what it is
 
     ``aiohttp_session`` (optional) uses the aiohttp_session that is passed in
+
+    ``tfa_token`` (optional) tfa token to pass in for login
     """
 
     def __init__(
@@ -63,6 +65,7 @@ class Client:
         email: str,
         password: str,
         aiohttp_session: aiohttp.ClientSession = None,
+        tfa_token: str = None,
     ):
         self._email = email
         self._password = password
@@ -74,6 +77,7 @@ class Client:
         self._token = None
         self._refresh_token = None
         self._token_exp_time = None
+        self._tfa_token = tfa_token
 
         self._subscribed_devices: Set["Device"] = set()
         self._updater_task: Optional[asyncio.Task[Any]] = None
@@ -225,6 +229,13 @@ class Client:
             else:
                 response = await self._async_refresh_tokens_via_email()
 
+                tfa_api_token = response.get("tfa_api_token")
+                if tfa_api_token:
+                    tfa_token = self._tfa_token or input("Enter in your 2fa token: ")
+                    response = await self._async_refresh_tokens_via_tfa(
+                        tfa_api_token, tfa_token
+                    )
+
             if not response.get("errors"):
                 self._token = response["access_token"]
                 self._refresh_token = response["refresh_token"]
@@ -242,6 +253,17 @@ class Client:
         """
         _LOGGER.info("Refreshing tokens with email")
         data = {"email": self._email, "password": self._password}
+        resp = await self._aiohttp_session.post(SMARTRENT_SESSIONS_URI, json=data)
+        return await resp.json()
+
+    async def _async_refresh_tokens_via_tfa(
+        self, tfa_api_token: str, tfa_token: str
+    ) -> dict:
+        """
+        Calls api endpoint to get tokens via a tfa api token and a tfa token
+        """
+        _LOGGER.info("Refreshing tokens with tfa support")
+        data = {"tfa_api_token": tfa_api_token, "token": tfa_token}
         resp = await self._aiohttp_session.post(SMARTRENT_SESSIONS_URI, json=data)
         return await resp.json()
 
