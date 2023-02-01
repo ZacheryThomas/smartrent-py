@@ -18,4 +18,4 @@ Limitations
 ***********
 
 * Could break at any time! Use at your own discretion.
-* NO 2FA support! Only works with SmartRent accounts that have `email` and `password` auth!
+* May not support all of the latest SmartRent devices (but you could help us add new devices!).
