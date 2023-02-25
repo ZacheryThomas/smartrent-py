@@ -412,7 +412,6 @@ class Client:
 
                 _LOGGER.info("Connecting to Websocket...")
                 async with websockets.connect(uri) as websocket:
-
                     # if we connect sucessfully at least one time, reset retries to 0
                     retries = 0
                     self._ws = websocket
