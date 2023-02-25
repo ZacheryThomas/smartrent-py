@@ -237,6 +237,10 @@ class Client:
                     )
 
             if not response.get("errors"):
+                # sometimes response needs to be extracted from "data"
+                # https://github.com/ZacheryThomas/homeassistant-smartrent/issues/15
+                response = response.get("data") or response
+
                 self._token = response["access_token"]
                 self._refresh_token = response["refresh_token"]
                 self._token_exp_time = response["expires"]
