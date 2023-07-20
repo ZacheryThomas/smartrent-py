@@ -150,26 +150,27 @@ class Thermostat(Device):
         ``event`` dict passed in from ``Client._async_update_state``
         """
         _LOGGER.info("Updating Thermostat")
-        last_read_state = str(event.get("last_read_state"))
+        last_read_state_str = str(event.get("last_read_state"))
+        last_read_state_int = int(float(last_read_state_str))
 
         if event.get("name") == "current_humidity":
             self._current_humidity = (
-                int(last_read_state)
-                if int(last_read_state) > 0
+                last_read_state_int
+                if last_read_state_int > 0
                 else self._current_humidity
             )
 
         elif event.get("name") == "current_temp":
-            self._current_temp = int(last_read_state)
+            self._current_temp = last_read_state_int
 
         elif event.get("name") == "heating_setpoint":
-            self._heating_setpoint = int(last_read_state)
+            self._heating_setpoint = last_read_state_int
 
         elif event.get("name") == "cooling_setpoint":
-            self._cooling_setpoint = int(last_read_state)
+            self._cooling_setpoint = last_read_state_int
 
         elif event.get("name") == "mode":
-            self._mode = last_read_state
+            self._mode = last_read_state_str
 
         elif event.get("name") == "fan_mode":
-            self._fan_mode = last_read_state
+            self._fan_mode = last_read_state_str
