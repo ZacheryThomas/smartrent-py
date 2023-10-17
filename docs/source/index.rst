@@ -1,9 +1,9 @@
-.. smartrent.py documentation master file, created by
+.. smartrent-py documentation master file, created by
    sphinx-quickstart on Wed Jan 12 09:07:05 2022.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to `smartrent.py`'s documentation!
+Welcome to `smartrent-py`'s documentation!
 ==========================================
 
 .. toctree::

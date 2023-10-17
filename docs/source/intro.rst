@@ -1,7 +1,7 @@
 Introduction
 ============
 
-``smartrent.py`` is an unofficial api for SmartRent devices.
+``smartrent-py`` is an unofficial api for SmartRent devices.
 
 This library uses websockets for communication and supports async functions.
 
