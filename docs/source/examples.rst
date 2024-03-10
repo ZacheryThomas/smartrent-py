@@ -50,11 +50,11 @@ This code gets the first :class:`smartrent.lock.DoorLock` we find through the ap
 
         first_lock = locks[0]
 
-        await first_lock.async_set_locked(False)
+        await first_lock.async_set_locked(True)
 
         await asyncio.sleep(10)
 
-        await first_lock.async_set_locked(True)
+        await first_lock.async_set_locked(False)
 
     asyncio.run(main())
 
