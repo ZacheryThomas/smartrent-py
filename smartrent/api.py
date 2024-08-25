@@ -1,8 +1,9 @@
 import logging
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, TypeVar
 
 import aiohttp
 
+from .device import Device
 from .lock import DoorLock
 from .sensor import LeakSensor
 from .switch import BinarySwitch, MultilevelSwitch
@@ -12,9 +13,7 @@ from .utils import Client
 _LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    ALL_DEVICE_TYPES = Union[
-        DoorLock, Thermostat, BinarySwitch, MultilevelSwitch, LeakSensor
-    ]
+    ALL_DEVICE_TYPES = TypeVar("ALL_DEVICE_TYPES", bound=Device)
 
 
 class API:
@@ -37,7 +36,7 @@ class API:
         aiohttp_session: aiohttp.ClientSession = None,
         tfa_token=None,
     ):
-        self._device_list: List["ALL_DEVICE_TYPES"] = []
+        self._device_list: List["ALL_DEVICE_TYPES"] = []  # type: ignore
         self.client: Client = Client(email, password, aiohttp_session, tfa_token)
 
     async def async_fetch_devices(self):
