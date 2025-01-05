@@ -11,11 +11,10 @@ class Sensor(Device):
     Represents a generic Sensor SmartRent device
     """
 
-    def __init__(self, state_attribute: str, state_last_read_attribute: str, device_id: int, client: Client):
+    def __init__(self, state_attribute: str, device_id: int, client: Client):
         super().__init__(device_id, client)
         self._leak: Optional[bool] = None
         self._state_attribute = state_attribute
-        self._state_last_read_attribute = state_last_read_attribute
 
     def get_active(self) -> Optional[bool]:
         """
