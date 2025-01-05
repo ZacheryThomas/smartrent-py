@@ -47,15 +47,15 @@ class Sensor(Device):
 
 class LeakSensor(Sensor):
     """
-    Represents LeakSensor SmartRent device
+    Represents LeakSensor SmartRent sensor
     """
 
     def __init__(self, device_id: int, client: Client):
         super().__init__("leak", device_id, client)
 
-class MotionSensor(Device):
+class MotionSensor(Sensor):
     """
-    Represents LeakSensor SmartRent device
+    Represents LeakSensor SmartRent sensor
     """
 
     def __init__(self, device_id: int, client: Client):
