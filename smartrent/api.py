@@ -5,7 +5,7 @@ import aiohttp
 
 from .device import Device
 from .lock import DoorLock
-from .sensor import LeakSensor
+from .sensor import LeakSensor, MotionSensor
 from .switch import BinarySwitch, MultilevelSwitch
 from .thermostat import Thermostat
 from .utils import Client
@@ -71,6 +71,9 @@ class API:
                 if "leak" in attr_names:
                     device_object = LeakSensor(device_id, self.client)
 
+                if "motion_binary" in attr_names:
+                    device_object = MotionSensor(device_id, self.client)
+
             if device_object:
                 # pass in intial device config
                 await device_object._async_fetch_state()
@@ -126,6 +129,12 @@ class API:
         Gets list of LeakSensors
         """
         return self._list_maker(LeakSensor)  # type: ignore
+
+    def get_motion_sensors(self) -> List[MotionSensor]:
+        """
+        Gets list of MotionSensors
+        """
+        return self._list_maker(MotionSensor)  # type: ignore
 
     def _list_maker(
         self,

@@ -6,21 +6,22 @@ from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
 
-
-class LeakSensor(Device):
+class Sensor(Device):
     """
-    Represents LeakSensor SmartRent device
+    Represents a generic Sensor SmartRent device
     """
 
-    def __init__(self, device_id: int, client: Client):
+    def __init__(self, state_attribute: str, state_last_read_attribute: str, device_id: int, client: Client):
         super().__init__(device_id, client)
         self._leak: Optional[bool] = None
+        self._state_attribute = state_attribute
+        self._state_last_read_attribute = state_last_read_attribute
 
-    def get_leak(self) -> Optional[bool]:
+    def get_active(self) -> Optional[bool]:
         """
-        Gets state from leak sensor
+        Gets state from the sensor
         """
-        return self._leak
+        return self._active
 
     def _fetch_state_helper(self, data: dict):
         """
@@ -32,7 +33,7 @@ class LeakSensor(Device):
 
         attrs = self._structure_attrs(data["attributes"])
 
-        self._leak = bool(attrs["leak"] == "true")
+        self._active = bool(attrs[self._state_attribute] == "true")
 
     def _update_parser(self, event: dict):
         """
@@ -42,5 +43,21 @@ class LeakSensor(Device):
         """
         _LOGGER.info("Updating Sensor")
 
-        if event.get("name") == "leak":
-            self._leak = bool(event["last_read_state"] == "true")
+        if event.get("name") == self._state_attribute:
+            self._active = bool(event["last_read_state"] == "true")
+
+class LeakSensor(Sensor):
+    """
+    Represents LeakSensor SmartRent device
+    """
+
+    def __init__(self, device_id: int, client: Client):
+        super().__init__("leak", device_id, client)
+
+class MotionSensor(Device):
+    """
+    Represents LeakSensor SmartRent device
+    """
+
+    def __init__(self, device_id: int, client: Client):
+        super().__init__("motion_binary", device_id, client)
