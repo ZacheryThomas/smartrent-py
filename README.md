@@ -19,6 +19,7 @@ This client supports:
 * 🔐 Door Locks
 * 🌡 Thermostats
 * 💧 Leak Sensors
+* 🏃 Motion Sensors
 * 💡 Binary Switches
 * 🎚 Multilevel (Dimmer) Switches
 
