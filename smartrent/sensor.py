@@ -6,6 +6,7 @@ from .utils import Client
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class Sensor(Device):
     """
     Represents a generic Sensor SmartRent device
@@ -45,6 +46,7 @@ class Sensor(Device):
         if event.get("name") == self._state_attribute:
             self._active = bool(event["last_read_state"] == "true")
 
+
 class LeakSensor(Sensor):
     """
     Represents LeakSensor SmartRent sensor
@@ -52,6 +54,7 @@ class LeakSensor(Sensor):
 
     def __init__(self, device_id: int, client: Client):
         super().__init__("leak", device_id, client)
+
 
 class MotionSensor(Sensor):
     """
