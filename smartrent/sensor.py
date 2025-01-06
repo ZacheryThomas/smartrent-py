@@ -49,7 +49,7 @@ class Sensor(Device):
 
 class LeakSensor(Sensor):
     """
-    Represents LeakSensor SmartRent sensor
+    Represents SmartRent leak sensor
     """
 
     def __init__(self, device_id: int, client: Client):
@@ -58,7 +58,7 @@ class LeakSensor(Sensor):
 
 class MotionSensor(Sensor):
     """
-    Represents LeakSensor SmartRent sensor
+    Represents SmartRent motion sensor
     """
 
     def __init__(self, device_id: int, client: Client):
