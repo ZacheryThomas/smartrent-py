@@ -16,6 +16,7 @@ class Thermostat(Device):
         super().__init__(device_id, client)
         self._mode: Optional[str] = None
         self._fan_mode: Optional[str] = None
+        self._operating_state: Optional[str] = None
         self._cooling_setpoint: Optional[int] = None
         self._heating_setpoint: Optional[int] = None
         self._current_humidity: Optional[int] = None
@@ -32,6 +33,12 @@ class Thermostat(Device):
         Gets fan mode from thermostat
         """
         return self._fan_mode
+
+    def get_operating_state(self) -> Optional[str]:
+        """
+        Gets operating state from thermostat
+        """
+        return self._operating_state
 
     def get_cooling_setpoint(self) -> Optional[int]:
         """
@@ -142,6 +149,7 @@ class Thermostat(Device):
 
         self._mode = attrs["mode"]
         self._fan_mode = attrs.get("fan_mode")
+        self._operating_state = attrs.get("operating_state")
 
     def _update_parser(self, event: dict) -> None:
         """
@@ -173,3 +181,6 @@ class Thermostat(Device):
 
         elif event.get("name") == "fan_mode":
             self._fan_mode = last_read_state
+
+        elif event.get("name") == "operating_state":
+            self._operating_state = last_read_state
