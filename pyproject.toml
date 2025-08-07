@@ -14,7 +14,7 @@ packages = [
 [tool.poetry.dependencies]
 aiohttp = "^3.8.4"
 python = ">=3.6.1,<4.0.0"
-websockets = "^13.1"
+websockets = "^15.0.1"
 
 [build-system]
 requires = ["setuptools >= 35.0.2", "wheel >= 0.29.0", "poetry>=0.12"]
