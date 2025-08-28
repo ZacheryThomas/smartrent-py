@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 import aiohttp
 import websockets
+import random
+from websockets.exceptions import ConnectionClosedError
 
 if TYPE_CHECKING:
     from smartrent.device import Device
@@ -411,10 +413,13 @@ class Client:
                 uri = SMARTRENT_WEBSOCKET_URI.format(token)
 
                 _LOGGER.info("Connecting to Websocket...")
-                async with websockets.connect(uri) as websocket:
-                    # if we connect sucessfully at least one time, reset retries to 0
-                    retries = 0
-                    self._ws = websocket
+                async with websockets.connect(
+                    uri,
+                    ping_interval=15,   # keep NAT and LB sessions alive
+                    ping_timeout=10,
+                    close_timeout=5,
+                    max_queue=None,     # avoid backpressure disconnects
+                ) as websocket:
 
                     # Join all devices to websocket connection
                     await self._async_ws_join_devices(
@@ -426,6 +431,17 @@ class Client:
                         message_list = json.loads(f"{message}")
                         formatted_resp = message_list[4]
                         device_id = message_list[2].split(":")[-1]
+                    # If server indicates channel or auth error, refresh token and reconnect
+                        if (
+                            message_list[3] in ("phx_error", "phx_close")
+                            or "unauthoriz" in json.dumps(formatted_resp).lower()
+                        ):
+                            _LOGGER.warning(
+                                "WS reported auth or channel error, refreshing token and reconnecting"
+                            )
+                            await self._async_refresh_token()
+                            break
+
 
                         event_type = formatted_resp.get("type", "")
                         event_name = formatted_resp.get("name", "")
@@ -446,7 +462,9 @@ class Client:
                                     await device._update(formatted_resp)
                         else:
                             _LOGGER.info(str(message))
-
+            except (ConnectionClosedError, ConnectionResetError) as exc:
+                _LOGGER.warning("WebSocket closed by peer: %s", exc)
+                self._ws = None
             except Exception as exc:
                 _LOGGER.warning(
                     "Exception occured! %s %s", type(exc).__name__, type(exc)
@@ -456,7 +474,7 @@ class Client:
                 # set websocket to None
                 self._ws = None
 
-                wait_time = 1.25**retries
+                wait_time = 1.25**retries + random.uniform(0, 0.5)  # jitter
                 wait_time = wait_time if wait_time < 300 else 300
                 _LOGGER.warning("Retrying websocket in %s seconds...", wait_time)
 
@@ -505,6 +523,8 @@ class Client:
 
         uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
 
-        async with websockets.connect(uri) as websocket:  # type: ignore
+        async with websockets.connect(
+            uri, ping_interval=15, ping_timeout=10, close_timeout=5
+        ) as websocket:  # type: ignore
             await self._async_ws_joiner(websocket, device)
             await websocket.send(payload)
