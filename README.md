@@ -7,6 +7,9 @@
 [![Documentation Status][docs-badge]](https://smartrentpy.readthedocs.io/en/latest/?badge=latest)
 [![Code style: black][black-badge]](https://github.com/psf/black)
 
+> [!WARNING]
+> I moved out of my apartment and don't have a way to access SmartRent anymore. I will add bug fix PRs as ppl contribute them
+
 `smartrent-py` is a simple library for SmartRent devices
 
 Uses websockets for communication and supports async functions
