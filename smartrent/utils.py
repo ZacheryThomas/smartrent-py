@@ -2,13 +2,13 @@ import asyncio
 import json
 import logging
 import math
+import random
 import time
 import traceback
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 import aiohttp
 import websockets
-import random
 from websockets.exceptions import ConnectionClosedError
 
 if TYPE_CHECKING:
@@ -415,12 +415,11 @@ class Client:
                 _LOGGER.info("Connecting to Websocket...")
                 async with websockets.connect(
                     uri,
-                    ping_interval=15,   # keep NAT and LB sessions alive
+                    ping_interval=15,  # keep NAT and LB sessions alive
                     ping_timeout=10,
                     close_timeout=5,
-                    max_queue=None,     # avoid backpressure disconnects
+                    max_queue=None,  # avoid backpressure disconnects
                 ) as websocket:
-
                     # Join all devices to websocket connection
                     await self._async_ws_join_devices(
                         websocket, self._subscribed_devices
@@ -431,17 +430,18 @@ class Client:
                         message_list = json.loads(f"{message}")
                         formatted_resp = message_list[4]
                         device_id = message_list[2].split(":")[-1]
-                    # If server indicates channel or auth error, refresh token and reconnect
+                        # If server indicates channel or auth error,
+                        # refresh token and reconnect
                         if (
                             message_list[3] in ("phx_error", "phx_close")
                             or "unauthoriz" in json.dumps(formatted_resp).lower()
                         ):
                             _LOGGER.warning(
-                                "WS reported auth or channel error, refreshing token and reconnecting"
+                                "WS reported auth or channel error,"
+                                " refreshing token and reconnecting"
                             )
                             await self._async_refresh_token()
                             break
-
 
                         event_type = formatted_resp.get("type", "")
                         event_name = formatted_resp.get("name", "")
