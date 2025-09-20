@@ -497,7 +497,6 @@ class Client:
         payload = COMMAND_PAYLOAD.format(
             attribute_name=attribute_name, value=value, device_id=device._device_id
         )
-        
         for attempt in range(2):  # Try twice
             try:
                 await self._async_send_payload(device, payload)
@@ -534,7 +533,7 @@ class Client:
             uri, 
             additional_headers=headers,
             ping_interval=15, 
-            ping_timeout=10, 
+            ping_timeout=10,
             close_timeout=5
         ) as websocket:  # type: ignore
             await self._async_ws_joiner(websocket, device)
