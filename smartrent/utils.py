@@ -201,13 +201,6 @@ class Client:
         if not self._refresh_token_lock:
             self._refresh_token_lock = asyncio.Lock()
 
-        if self._refresh_token_lock.locked():
-            # Wait to have lock, then release it
-            # since other thread already updated the token
-            await self._refresh_token_lock.acquire()
-            self._refresh_token_lock.release()
-            return
-
         # Check to make sure token is expired before trying to refresh
         if self._token_exp_time:
             if self._token_exp_time > (math.ceil(time.time()) + 60):
@@ -215,6 +208,15 @@ class Client:
                 return
 
         async with self._refresh_token_lock:
+            # Double-check: another coroutine might have refreshed
+            # the token while we waited for the lock
+            if self._token_exp_time:
+                if self._token_exp_time > (math.ceil(time.time()) + 60):
+                    _LOGGER.info(
+                        "Token refreshed by another task. Skipping refresh."
+                    )
+                    return
+
             if self._refresh_token:
                 response = await self._async_refresh_tokens_via_refresh_token()
 
@@ -233,7 +235,16 @@ class Client:
 
                 tfa_api_token = response.get("tfa_api_token")
                 if tfa_api_token:
-                    tfa_token = self._tfa_token or input("Enter in your 2fa token: ")
+                    if self._tfa_token:
+                        tfa_token = self._tfa_token
+                    else:
+                        _LOGGER.warning(
+                            "TFA required but no token provided. "
+                            "Pass tfa_token to async_login() to avoid blocking."
+                        )
+                        tfa_token = await asyncio.to_thread(
+                            input, "Enter your 2FA token: "
+                        )
                     response = await self._async_refresh_tokens_via_tfa(
                         tfa_api_token, tfa_token
                     )

@@ -71,7 +71,7 @@ class API:
                 if "leak" in attr_names:
                     device_object = LeakSensor(device_id, self.client)
 
-                if "motion_binary" in attr_names:
+                elif "motion_binary" in attr_names:
                     device_object = MotionSensor(device_id, self.client)
 
             if device_object:

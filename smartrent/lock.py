@@ -53,7 +53,7 @@ class DoorLock(Device):
         attrs = self._structure_attrs(data["attributes"])
 
         self._locked = bool(attrs["locked"] == "true")
-        self._notification = attrs["notifications"]
+        self._notification = attrs.get("notifications")
 
     def _update_parser(self, event: dict):
         """
