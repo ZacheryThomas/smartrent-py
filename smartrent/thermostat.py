@@ -147,7 +147,7 @@ class Thermostat(Device):
                 temp_humidity if temp_humidity > 0 else self._current_humidity
             )
 
-        self._mode = attrs["mode"]
+        self._mode = attrs.get("mode", "off")
         self._fan_mode = attrs.get("fan_mode")
         self._operating_state = attrs.get("operating_state")
 
