@@ -422,6 +422,12 @@ class Client:
                     close_timeout=5,
                     max_queue=None,  # avoid backpressure disconnects
                 ) as websocket:
+                    # Expose the live connection so devices subscribed after the
+                    # updater has started can be joined to the channel immediately
+                    # (see _subscribe_device_to_updater). Without this, self._ws
+                    # stays None and late subscribers get no events until reconnect.
+                    self._ws = websocket
+
                     # Join all devices to websocket connection
                     await self._async_ws_join_devices(
                         websocket, self._subscribed_devices
