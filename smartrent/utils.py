@@ -23,6 +23,7 @@ SMARTRENT_SESSIONS_URI = SMARTRENT_BASE_URI + "sessions"
 SMARTRENT_TOKENS_URI = SMARTRENT_BASE_URI + "tokens"
 SMARTRENT_HUBS_URI = SMARTRENT_BASE_URI + "hubs"
 SMARTRENT_HUBS_ID_URI = SMARTRENT_BASE_URI + "hubs/{}/devices"
+SMARTRENT_UNITS_ID_URI = SMARTRENT_BASE_URI + "units/{}/devices"
 SMARTRENT_DEVICE_URI = SMARTRENT_BASE_URI + "devices/{}"
 
 SMARTRENT_WEBSOCKET_URI = (
@@ -144,18 +145,46 @@ class Client:
                 raise InvalidAuthError(hubs.get("errors"))
 
         devices_list = []
+        found_device_ids = set()
         for hub in hubs:
-            devices_resp = await self._aiohttp_session.get(
-                SMARTRENT_HUBS_ID_URI.format(hub["id"]),
-                headers={"authorization": f"Bearer {self._token}"},
+            hub_devices = await self._async_get_devices_from_url(
+                SMARTRENT_HUBS_ID_URI.format(hub["id"])
             )
-            devices = await devices_resp.json()
+            unit_devices = []
 
-            for device in devices:
+            if hub.get("unit_id"):
+                unit_devices = await self._async_get_devices_from_url(
+                    SMARTRENT_UNITS_ID_URI.format(hub["unit_id"])
+                )
+
+            for device in hub_devices + unit_devices:
+                if device["id"] in found_device_ids:
+                    continue
+
+                found_device_ids.add(device["id"])
                 _LOGGER.info("Found %s: %s", device["id"], device["name"])
                 devices_list.append(device)
 
         return devices_list
+
+    async def _async_get_devices_from_url(self, url: str) -> List[dict]:
+        devices_resp = await self._aiohttp_session.get(
+            url,
+            headers={"authorization": f"Bearer {self._token}"},
+        )
+        devices = await devices_resp.json()
+
+        if not devices_resp.ok:
+            if devices.get("errors", [{}])[0].get("code") == "unauthorized":
+                raise InvalidAuthError(devices.get("errors"))
+
+            _LOGGER.warning("Unable to fetch devices from %s: %s", url, devices)
+            return []
+
+        if isinstance(devices, dict):
+            return devices.get("records", [])
+
+        return devices
 
     async def async_get_device_data(self, id: int) -> Dict[str, Any]:
         """
