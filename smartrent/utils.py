@@ -28,6 +28,9 @@ SMARTRENT_DEVICE_URI = SMARTRENT_BASE_URI + "devices/{}"
 SMARTRENT_WEBSOCKET_URI = (
     "wss://control.smartrent.com/socket/websocket?token={}&vsn=2.0.0"
 )
+# Bound inbound buffering so a burst cannot retain an unbounded number of frames.
+SMARTRENT_WEBSOCKET_MAX_QUEUE = 16
+SMARTRENT_WEBSOCKET_MAX_SIZE = 256 * 1024
 JOINER_PAYLOAD = '["null", "null", "devices:{device_id}", "phx_join", {{}}]'
 COMMAND_PAYLOAD = (
     '["null", "null", "devices:{device_id}", "update_attributes", '
@@ -420,7 +423,8 @@ class Client:
                     ping_interval=15,  # keep NAT and LB sessions alive
                     ping_timeout=10,
                     close_timeout=5,
-                    max_queue=None,  # avoid backpressure disconnects
+                    max_queue=SMARTRENT_WEBSOCKET_MAX_QUEUE,
+                    max_size=SMARTRENT_WEBSOCKET_MAX_SIZE,
                 ) as websocket:
                     # Join all devices to websocket connection
                     await self._async_ws_join_devices(
@@ -535,6 +539,8 @@ class Client:
             ping_interval=15,
             ping_timeout=10,
             close_timeout=5,
+            max_queue=SMARTRENT_WEBSOCKET_MAX_QUEUE,
+            max_size=SMARTRENT_WEBSOCKET_MAX_SIZE,
         ) as websocket:  # type: ignore
             await self._async_ws_joiner(websocket, device)
             await websocket.send(payload)
