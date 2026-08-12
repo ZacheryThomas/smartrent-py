@@ -5,6 +5,7 @@ import math
 import random
 import time
 import traceback
+from ssl import SSLContext
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 import aiohttp
@@ -68,6 +69,7 @@ class Client:
         password: str,
         aiohttp_session: aiohttp.ClientSession = None,
         tfa_token: str = None,
+        ssl_context: Optional[SSLContext] = None,
     ):
         self._email = email
         self._password = password
@@ -80,6 +82,7 @@ class Client:
         self._refresh_token = None
         self._token_exp_time = None
         self._tfa_token = tfa_token
+        self._ssl_context = ssl_context
 
         self._subscribed_devices: Set["Device"] = set()
         self._updater_task: Optional[asyncio.Task[Any]] = None
@@ -416,6 +419,7 @@ class Client:
                 headers = {"Authorization": f"Bearer {token}"}
                 async with websockets.connect(
                     uri,
+                    ssl=self._ssl_context,
                     additional_headers=headers,
                     ping_interval=15,  # keep NAT and LB sessions alive
                     ping_timeout=10,
@@ -531,6 +535,7 @@ class Client:
 
         async with websockets.connect(
             uri,
+            ssl=self._ssl_context,
             additional_headers=headers,
             ping_interval=15,
             ping_timeout=10,

@@ -1,4 +1,5 @@
 import logging
+from ssl import SSLContext
 from typing import TYPE_CHECKING, List, Optional, TypeVar
 
 import aiohttp
@@ -35,9 +36,16 @@ class API:
         password: str,
         aiohttp_session: aiohttp.ClientSession = None,
         tfa_token=None,
+        ssl_context: Optional[SSLContext] = None,
     ):
         self._device_list: List["ALL_DEVICE_TYPES"] = []  # type: ignore
-        self.client: Client = Client(email, password, aiohttp_session, tfa_token)
+        self.client: Client = Client(
+            email,
+            password,
+            aiohttp_session,
+            tfa_token,
+            ssl_context,
+        )
 
     async def async_fetch_devices(self):
         """
@@ -151,6 +159,7 @@ async def async_login(
     password: str,
     aiohttp_session: aiohttp.ClientSession = None,
     tfa_token: str = None,
+    ssl_context: Optional[SSLContext] = None,
 ) -> API:
     """
     Logs into SmartRent and retruns an ``API`` object.
@@ -166,7 +175,13 @@ async def async_login(
     ``tfa_token`` (optional) tfa token to pass in for login
     """
 
-    smart_rent_api = API(email, password, aiohttp_session, tfa_token)
+    smart_rent_api = API(
+        email,
+        password,
+        aiohttp_session,
+        tfa_token,
+        ssl_context,
+    )
     await smart_rent_api.async_fetch_devices()
 
     return smart_rent_api
