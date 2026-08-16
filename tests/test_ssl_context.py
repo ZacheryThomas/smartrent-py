@@ -79,3 +79,40 @@ async def test_ssl_context_passed_to_command_connection(monkeypatch):
 
     assert connect_calls[0][1]["ssl"] is ssl_context
     assert websocket.sent == ["payload"]
+
+
+@pytest.mark.asyncio
+async def test_none_ssl_context_uses_websockets_secure_default_for_updater(monkeypatch):
+    websocket = FakeWebSocket()
+    connect_calls = []
+
+    def connect(*args, **kwargs):
+        connect_calls.append((args, kwargs))
+        return websocket
+
+    monkeypatch.setattr("smartrent.utils.websockets.connect", connect)
+    client = make_client(None)
+
+    with pytest.raises(asyncio.CancelledError):
+        await client._async_update_state_via_ws()
+
+    assert "ssl" not in connect_calls[0][1]
+
+
+@pytest.mark.asyncio
+async def test_none_ssl_context_uses_websockets_secure_default_for_command(monkeypatch):
+    websocket = FakeWebSocket()
+    connect_calls = []
+
+    def connect(*args, **kwargs):
+        connect_calls.append((args, kwargs))
+        return websocket
+
+    monkeypatch.setattr("smartrent.utils.websockets.connect", connect)
+    client = make_client(None)
+    device = SimpleNamespace(_device_id=123, _name="Lock")
+
+    await client._async_send_payload(device, "payload")
+
+    assert "ssl" not in connect_calls[0][1]
+    assert websocket.sent == ["payload"]

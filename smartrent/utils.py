@@ -616,14 +616,18 @@ class Client:
 
                 _LOGGER.info("Connecting to Websocket...")
                 headers = {"Authorization": f"Bearer {token}"}
+                connect_kwargs = {
+                    "additional_headers": headers,
+                    "ping_interval": 15,
+                    "ping_timeout": 10,
+                    "close_timeout": 5,
+                    "max_queue": None,
+                }
+                if self._ssl_context is not None:
+                    connect_kwargs["ssl"] = self._ssl_context
                 async with websockets.connect(
                     uri,
-                    ssl=self._ssl_context,
-                    additional_headers=headers,
-                    ping_interval=15,  # keep NAT and LB sessions alive
-                    ping_timeout=10,
-                    close_timeout=5,
-                    max_queue=None,  # avoid backpressure disconnects
+                    **connect_kwargs,
                 ) as websocket:
                     # Join all devices to websocket connection
                     await self._async_ws_join_devices(
@@ -731,14 +735,18 @@ class Client:
 
         uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
         headers = {"Authorization": f"Bearer {self._token}"}
+        connect_kwargs = {
+            "additional_headers": headers,
+            "ping_interval": 15,
+            "ping_timeout": 10,
+            "close_timeout": 5,
+        }
+        if self._ssl_context is not None:
+            connect_kwargs["ssl"] = self._ssl_context
 
         async with websockets.connect(  # type: ignore[attr-defined]
             uri,
-            ssl=self._ssl_context,
-            additional_headers=headers,
-            ping_interval=15,
-            ping_timeout=10,
-            close_timeout=5,
+            **connect_kwargs,
         ) as websocket:
             await self._async_ws_joiner(websocket, device)
             await websocket.send(payload)
