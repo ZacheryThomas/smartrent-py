@@ -3,8 +3,10 @@ import json
 import logging
 import math
 import random
+import re
 import time
 import traceback
+from ssl import SSLContext
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 import aiohttp
@@ -24,6 +26,12 @@ SMARTRENT_TOKENS_URI = SMARTRENT_BASE_URI + "tokens"
 SMARTRENT_HUBS_URI = SMARTRENT_BASE_URI + "hubs"
 SMARTRENT_HUBS_ID_URI = SMARTRENT_BASE_URI + "hubs/{}/devices"
 SMARTRENT_DEVICE_URI = SMARTRENT_BASE_URI + "devices/{}"
+SMARTRENT_UNIT_ACCESS_URI = SMARTRENT_BASE_URI + "units/{}/access"
+SMARTRENT_GUEST_ACCESS_CODES_URI = (
+    SMARTRENT_BASE_URI + "units/{}/resident-guest-access-codes"
+)
+SMARTRENT_V1_BASE_URI = "https://control.smartrent.com/api/v1/"
+SMARTRENT_ACCESS_CODE_URI = SMARTRENT_V1_BASE_URI + "hubs/{}/devices/{}/codes/{}"
 
 SMARTRENT_WEBSOCKET_URI = (
     "wss://control.smartrent.com/socket/websocket?token={}&vsn=2.0.0"
@@ -48,6 +56,22 @@ class InvalidAuthError(SmartRentError):
     """
 
 
+class SmartRentHTTPError(SmartRentError):
+    """A non-successful response from the SmartRent HTTP API."""
+
+    def __init__(self, status: int, reason: Optional[str] = None):
+        self.status = status
+        self.reason = reason
+        message = "SmartRent request failed with HTTP status {}".format(status)
+        if reason:
+            message += " ({})".format(reason)
+        super().__init__(message)
+
+
+class SmartRentValidationError(SmartRentError, ValueError):
+    """Invalid input that was rejected before a SmartRent request was sent."""
+
+
 class Client:
     """
     Represents Client for SmartRent http and websocket api.
@@ -66,8 +90,9 @@ class Client:
         self,
         email: str,
         password: str,
-        aiohttp_session: aiohttp.ClientSession = None,
-        tfa_token: str = None,
+        aiohttp_session: Optional[aiohttp.ClientSession] = None,
+        tfa_token: Optional[str] = None,
+        ssl_context: Optional[SSLContext] = None,
     ):
         self._email = email
         self._password = password
@@ -80,6 +105,7 @@ class Client:
         self._refresh_token = None
         self._token_exp_time = None
         self._tfa_token = tfa_token
+        self._ssl_context = ssl_context
 
         self._subscribed_devices: Set["Device"] = set()
         self._updater_task: Optional[asyncio.Task[Any]] = None
@@ -111,6 +137,186 @@ class Client:
             self._updater_task.cancel()
             self._ws = None
 
+    @staticmethod
+    def _error_code(payload: Any) -> Optional[str]:
+        if not isinstance(payload, dict):
+            return None
+        errors = payload.get("errors")
+        if (
+            not isinstance(errors, list)
+            or not errors
+            or not isinstance(errors[0], dict)
+        ):
+            return None
+        code = errors[0].get("code")
+        if isinstance(code, str):
+            return code
+        return None
+
+    @classmethod
+    def _safe_http_reason(cls, response: Any, payload: Any) -> Optional[str]:
+        reason = getattr(response, "reason", None)
+        if isinstance(reason, str) and re.match(r"^[A-Za-z][A-Za-z -]{0,79}$", reason):
+            return reason
+
+        code = cls._error_code(payload)
+        if code and re.match(r"^[A-Za-z][A-Za-z0-9_.-]{0,63}$", code):
+            return code
+        return None
+
+    async def _async_authenticated_request(
+        self, method: str, uri: str, json_body: Optional[Dict[str, Any]] = None
+    ) -> Any:
+        """Send an authenticated request, retrying once after an auth failure."""
+        if not self._token:
+            await self._async_refresh_token()
+
+        for attempt in range(2):
+            request_kwargs = {
+                "headers": {"authorization": "Bearer {}".format(self._token)}
+            }
+            if json_body is not None:
+                request_kwargs["json"] = json_body
+
+            response = await self._aiohttp_session.request(
+                method, uri, **request_kwargs
+            )
+            try:
+                payload = await response.json(content_type=None)
+            except (TypeError, ValueError):
+                payload = None
+
+            status = response.status
+            if 200 <= status < 300:
+                return payload
+
+            unauthorized = status in (401, 403) or self._error_code(payload) == (
+                "unauthorized"
+            )
+            if unauthorized and attempt == 0:
+                _LOGGER.warning(
+                    "SmartRent authorization failed; refreshing and retrying once"
+                )
+                self._token_exp_time = None
+                await self._async_refresh_token()
+                continue
+
+            raise SmartRentHTTPError(status, self._safe_http_reason(response, payload))
+
+        raise SmartRentHTTPError(401, "Unauthorized")
+
+    async def async_get_hubs(self) -> List[dict]:
+        """Return the account's hubs, including their unit IDs."""
+        hubs = await self._async_authenticated_request("GET", SMARTRENT_HUBS_URI)
+        if not isinstance(hubs, list):
+            raise SmartRentError("SmartRent hubs response was not a list")
+        return hubs
+
+    async def async_get_unit_access(self, unit_id: int) -> Dict[str, Any]:
+        """Return access configuration and codes for a unit."""
+        from .access import validate_positive_id
+
+        validate_positive_id(unit_id, "unit_id")
+        access = await self._async_authenticated_request(
+            "GET", SMARTRENT_UNIT_ACCESS_URI.format(unit_id)
+        )
+        if not isinstance(access, dict):
+            raise SmartRentError("SmartRent unit access response was not an object")
+        return access
+
+    async def async_create_guest_access_code(
+        self,
+        unit_id: int,
+        activation_type: str,
+        first_name: str,
+        last_name: str,
+        phone: Optional[str] = None,
+        email: Optional[str] = None,
+        temporary_start_at: Optional[str] = None,
+        temporary_end_at: Optional[str] = None,
+        recurring_start_time: Optional[str] = None,
+        recurring_end_time: Optional[str] = None,
+        recurring_repeat_on: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Create a server-generated permanent, temporary, or recurring guest code."""
+        from .access import build_create_guest_access_code_body, validate_positive_id
+
+        validate_positive_id(unit_id, "unit_id")
+        body = build_create_guest_access_code_body(
+            activation_type=activation_type,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            email=email,
+            temporary_start_at=temporary_start_at,
+            temporary_end_at=temporary_end_at,
+            recurring_start_time=recurring_start_time,
+            recurring_end_time=recurring_end_time,
+            recurring_repeat_on=recurring_repeat_on,
+        )
+        result = await self._async_authenticated_request(
+            "POST", SMARTRENT_GUEST_ACCESS_CODES_URI.format(unit_id), body
+        )
+        if not isinstance(result, dict):
+            raise SmartRentError("SmartRent guest access response was not an object")
+        return result
+
+    async def async_update_guest_access_code(
+        self,
+        hub_id: int,
+        device_id: int,
+        code_id: int,
+        activation_type: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        phone: Optional[str] = None,
+        email: Optional[str] = None,
+        temporary_start_at: Optional[str] = None,
+        temporary_end_at: Optional[str] = None,
+        recurring_start_time: Optional[str] = None,
+        recurring_end_time: Optional[str] = None,
+        recurring_repeat_on: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Update guest access-code metadata or schedule fields."""
+        from .access import build_update_guest_access_code_body, validate_positive_id
+
+        validate_positive_id(hub_id, "hub_id")
+        validate_positive_id(device_id, "device_id")
+        validate_positive_id(code_id, "code_id")
+        body = build_update_guest_access_code_body(
+            activation_type=activation_type,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            email=email,
+            temporary_start_at=temporary_start_at,
+            temporary_end_at=temporary_end_at,
+            recurring_start_time=recurring_start_time,
+            recurring_end_time=recurring_end_time,
+            recurring_repeat_on=recurring_repeat_on,
+        )
+        result = await self._async_authenticated_request(
+            "PATCH",
+            SMARTRENT_ACCESS_CODE_URI.format(hub_id, device_id, code_id),
+            body,
+        )
+        if not isinstance(result, dict):
+            raise SmartRentError("SmartRent guest access response was not an object")
+        return result
+
+    async def async_delete_guest_access_code(
+        self, hub_id: int, device_id: int, code_id: int
+    ) -> Any:
+        """Delete a guest access code."""
+        from .access import validate_positive_id
+
+        validate_positive_id(hub_id, "hub_id")
+        validate_positive_id(device_id, "device_id")
+        validate_positive_id(code_id, "code_id")
+        return await self._async_authenticated_request(
+            "DELETE", SMARTRENT_ACCESS_CODE_URI.format(hub_id, device_id, code_id)
+        )
+
     async def async_get_devices_data(self) -> List[dict]:
         """
         Gets list of device dictionaries from SmartRent's api.
@@ -141,7 +347,7 @@ class Client:
 
         if not hubs_resp.ok:
             if hubs.get("errors", [{}])[0].get("code") == "unauthorized":
-                raise InvalidAuthError(hubs.get("errors"))
+                raise InvalidAuthError("SmartRent authorization failed")
 
         devices_list = []
         for hub in hubs:
@@ -188,7 +394,7 @@ class Client:
 
         if not device_resp.ok:
             if device_dict.get("errors", [{}])[0].get("code") == "unauthorized":
-                raise InvalidAuthError(device_dict.get("errors"))
+                raise InvalidAuthError("SmartRent authorization failed")
 
         return device_dict
 
@@ -223,9 +429,8 @@ class Client:
                     codes = [err["code"] for err in response.get("errors")]
                     if "unauthorized" in codes:
                         _LOGGER.warning(
-                            "Refreshing with refresh_token failed with %s. "
-                            "Trying with email and pass instead.",
-                            response["errors"],
+                            "Refreshing with a SmartRent refresh token failed; "
+                            "trying account credentials instead"
                         )
                         response = await self._async_refresh_tokens_via_email()
             else:
@@ -248,10 +453,7 @@ class Client:
                 self._token_exp_time = response["expires"]
                 _LOGGER.info("Tokens refreshed!")
             else:
-                raise InvalidAuthError(
-                    "Token not retrieved! "
-                    f'Loggin probably not successful: {response["errors"]}'
-                )
+                raise InvalidAuthError("SmartRent authentication failed")
 
     async def _async_refresh_tokens_via_email(self) -> dict:
         """
@@ -414,13 +616,18 @@ class Client:
 
                 _LOGGER.info("Connecting to Websocket...")
                 headers = {"Authorization": f"Bearer {token}"}
+                connect_kwargs = {
+                    "additional_headers": headers,
+                    "ping_interval": 15,
+                    "ping_timeout": 10,
+                    "close_timeout": 5,
+                    "max_queue": None,
+                }
+                if self._ssl_context is not None:
+                    connect_kwargs["ssl"] = self._ssl_context
                 async with websockets.connect(
                     uri,
-                    additional_headers=headers,
-                    ping_interval=15,  # keep NAT and LB sessions alive
-                    ping_timeout=10,
-                    close_timeout=5,
-                    max_queue=None,  # avoid backpressure disconnects
+                    **connect_kwargs,
                 ) as websocket:
                     # Join all devices to websocket connection
                     await self._async_ws_join_devices(
@@ -524,17 +731,22 @@ class Client:
 
         Throws ``websockets.exceptions.InvalidStatus`` upon bad websocket event
         """
-        _LOGGER.info("sending payload %s", payload)
+        _LOGGER.info("Sending SmartRent websocket payload")
 
         uri = SMARTRENT_WEBSOCKET_URI.format(self._token)
         headers = {"Authorization": f"Bearer {self._token}"}
+        connect_kwargs = {
+            "additional_headers": headers,
+            "ping_interval": 15,
+            "ping_timeout": 10,
+            "close_timeout": 5,
+        }
+        if self._ssl_context is not None:
+            connect_kwargs["ssl"] = self._ssl_context
 
-        async with websockets.connect(
+        async with websockets.connect(  # type: ignore[attr-defined]
             uri,
-            additional_headers=headers,
-            ping_interval=15,
-            ping_timeout=10,
-            close_timeout=5,
-        ) as websocket:  # type: ignore
+            **connect_kwargs,
+        ) as websocket:
             await self._async_ws_joiner(websocket, device)
             await websocket.send(payload)
